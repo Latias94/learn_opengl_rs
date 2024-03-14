@@ -1,8 +1,24 @@
-const WIDTH: u32 = 1024;
-const HEIGHT: u32 = 768;
+pub trait Application {
+    fn init(&mut self, ctx: &GLContext);
+    fn update(&mut self, ctx: &GLContext);
+    fn handle_event(&mut self, ctx: &GLContext);
+    fn exit(&mut self, ctx: &GLContext);
+}
 
-// window functions will move to `window.rs`
-pub fn main_1_1_1() {
+pub struct WindowInitInfo {
+    pub width: u32,
+    pub height: u32,
+    pub title: String,
+    pub major: u8,
+    pub minor: u8,
+}
+
+pub struct GLContext {
+    pub gl: glow::Context,
+    pub shader_version: &'static str,
+}
+
+pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
     unsafe {
         // Create a context from a WebGL2 context on wasm32 targets
         #[cfg(target_arch = "wasm32")]
@@ -26,9 +42,15 @@ pub fn main_1_1_1() {
             (gl, "#version 300 es")
         };
 
+        let width = init_info.width;
+        let height = init_info.height;
+        let title = init_info.title;
+        let major = init_info.major;
+        let minor = init_info.minor;
+
         // Create a context from a glutin window on non-wasm32 targets
         #[cfg(feature = "glutin_winit")]
-        let (_gl, _gl_surface, _gl_context, _shader_version, _window, event_loop) = {
+        let (gl, gl_surface, gl_context, shader_version, _window, event_loop) = {
             use glutin::{
                 config::{ConfigTemplateBuilder, GlConfig},
                 context::{ContextApi, ContextAttributesBuilder, NotCurrentGlContext},
@@ -41,8 +63,8 @@ pub fn main_1_1_1() {
 
             let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
             let window_builder = winit::window::WindowBuilder::new()
-                .with_title("Hello triangle!")
-                .with_inner_size(winit::dpi::LogicalSize::new(WIDTH, HEIGHT));
+                .with_title(title.as_str())
+                .with_inner_size(winit::dpi::LogicalSize::new(width, height));
 
             let template = ConfigTemplateBuilder::new();
 
@@ -67,14 +89,14 @@ pub fn main_1_1_1() {
             let gl_display = gl_config.display();
             let context_attributes = ContextAttributesBuilder::new()
                 .with_context_api(ContextApi::OpenGl(Some(glutin::context::Version {
-                    major: 3,
-                    minor: 3,
+                    major,
+                    minor,
                 })))
                 .build(raw_window_handle);
 
             let not_current_gl_context = gl_display
                 .create_context(&gl_config, &context_attributes)
-                .expect("Cannot create GL context 3.3");
+                .expect("Cannot create GL context");
 
             let window = window.unwrap();
 
@@ -103,14 +125,14 @@ pub fn main_1_1_1() {
 
         // Create a context from a sdl2 window
         #[cfg(feature = "sdl2")]
-        let (_gl, _shader_version, _window, mut events_loop, _context) = {
+        let (gl, shader_version, window, mut events_loop, _context) = {
             let sdl = sdl2::init().unwrap();
             let video = sdl.video().unwrap();
             let gl_attr = video.gl_attr();
             gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
-            gl_attr.set_context_version(3, 3);
+            gl_attr.set_context_version(major, minor);
             let window = video
-                .window("Hello triangle!", WIDTH, HEIGHT)
+                .window(title.as_str(), width, height)
                 .opengl()
                 .resizable()
                 .build()
@@ -122,18 +144,25 @@ pub fn main_1_1_1() {
             (gl, "#version 130", window, event_loop, gl_context)
         };
 
+        let ctx = GLContext { gl, shader_version };
+
+        app.init(&ctx);
+
         // We handle events differently between targets
         #[cfg(feature = "glutin_winit")]
         {
+            use glutin::prelude::GlSurface;
             use winit::event::{Event, WindowEvent};
             let _ = event_loop.run(move |event, elwt| {
                 if let Event::WindowEvent { event, .. } = event {
                     match event {
                         WindowEvent::CloseRequested => {
                             elwt.exit();
+                            app.exit(&ctx);
                         }
                         WindowEvent::RedrawRequested => {
-                            // draw
+                            app.update(&ctx);
+                            gl_surface.swap_buffers(&gl_context).unwrap();
                         }
                         _ => (),
                     }
@@ -153,14 +182,18 @@ pub fn main_1_1_1() {
                         }
                     }
                 }
+                app.update(&ctx);
+                window.gl_swap_window();
             }
+            app.exit(&ctx);
         }
 
         #[cfg(target_arch = "wasm32")]
         {
             // This could be called from `requestAnimationFrame`, a winit event
             // loop, etc.
-            // draw
+            app.update(&ctx);
+            app.exit(&ctx);
         }
     }
 }
