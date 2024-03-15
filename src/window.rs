@@ -59,7 +59,7 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
 
         // Create a context from a glutin window on non-wasm32 targets
         #[cfg(feature = "glutin_winit")]
-        let (gl, gl_surface, gl_context, shader_version, _window, event_loop) = {
+        let (gl, gl_surface, gl_context, shader_version, window, event_loop) = {
             use glutin::{
                 config::{ConfigTemplateBuilder, GlConfig},
                 context::{ContextApi, ContextAttributesBuilder, NotCurrentGlContext},
@@ -176,6 +176,7 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
                         WindowEvent::RedrawRequested => {
                             app.update(&ctx);
                             gl_surface.swap_buffers(&gl_context).unwrap();
+                            window.request_redraw();
                         }
                         WindowEvent::Resized(physical_size) => {
                             if physical_size.width != last_width
@@ -184,6 +185,7 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
                                 last_width = physical_size.width;
                                 last_height = physical_size.height;
                                 app.resize(&ctx, physical_size.width, physical_size.height);
+                                window.request_redraw();
                             }
                         }
                         _ => (),

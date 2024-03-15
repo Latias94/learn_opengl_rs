@@ -1,4 +1,5 @@
 use crate::window::{run, Application, GLContext, WindowInitInfo};
+use chrono::Utc;
 use glow::*;
 use std::mem::size_of;
 
@@ -22,6 +23,7 @@ struct App {
     vao: Option<VertexArray>,
     vbo: Option<Buffer>,
     program: Option<Program>,
+    start: chrono::DateTime<Utc>,
 }
 
 impl Application for App {
@@ -75,6 +77,7 @@ impl Application for App {
             self.program = Some(program);
             self.vao = Some(vao);
             self.vbo = Some(vbo);
+            self.start = Utc::now();
         }
     }
 
@@ -83,23 +86,22 @@ impl Application for App {
             let gl = &ctx.gl;
             gl.clear_color(0.1, 0.2, 0.3, 1.0);
             gl.clear(COLOR_BUFFER_BIT);
-            // seeing as we only have a single VAO there's no need to bind it every time,
-            // but we'll do so to keep things a bit more organized
-            gl.bind_vertex_array(self.vao);
 
             gl.use_program(self.program);
 
-            // update shader uniform
-            let time = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs_f32();
+            let current = Utc::now();
+            let duration = current - self.start;
+            let time = duration.num_milliseconds() as f32 / 1000.0;
             let green_value = (time.sin() / 2.0) + 0.5;
+
             let our_color = gl
                 .get_uniform_location(self.program.unwrap(), "ourColor")
                 .unwrap();
             gl.uniform_4_f32(Some(&our_color), 0.0, green_value, 0.0, 1.0);
 
+            // seeing as we only have a single VAO there's no need to bind it every time,
+            // but we'll do so to keep things a bit more organized
+            gl.bind_vertex_array(self.vao);
             gl.draw_arrays(TRIANGLES, 0, 3);
         }
     }
