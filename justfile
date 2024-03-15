@@ -1,13 +1,18 @@
-winit INDEX="1_1_1":
-  @echo 'Run winit with INDEX={{INDEX}}'
-  cargo run --features=glutin_winit -- {{INDEX}}
+run TUTORIAL="1_1_1":
+  @echo 'Run winit with TUTORIAL={{TUTORIAL}}'
+  RUST_LOG=info cargo run --features=glutin_winit -- {{TUTORIAL}}
 
-sdl2 INDEX="1_1_1":
-  @echo 'Run sdl2 with INDEX={{INDEX}}'
-  cargo run --features=sdl2 -- {{INDEX}}
+winit TUTORIAL="1_1_1":
+  @echo 'Run winit with TUTORIAL={{TUTORIAL}}'
+  RUST_LOG=info cargo run --features=glutin_winit -- {{TUTORIAL}}
 
-web INDEX="1_1_1":
+sdl2 TUTORIAL="1_1_1":
+  @echo 'Run sdl2 with TUTORIAL={{TUTORIAL}}'
+  RUST_LOG=info cargo run --features=sdl2 -- {{TUTORIAL}}
+
+web:
   @echo 'Build and serve for web'
   cargo build --target wasm32-unknown-unknown && wasm-bindgen ./target/wasm32-unknown-unknown/debug/learn_opengl_rs.wasm --out-dir web --target web
-  @echo 'Open http://localhost:8000 in your browser!'
+  @echo 'Open http://127.0.0.1:8000/?tutorial=1_2_1 in your browser!'
+  @echo 'You can also change the tutorial number in the URL to see different tutorials. e.g. 1_1_1, 1_1_2, 1_2_1, ...'
   cd web && python3 -m http.server

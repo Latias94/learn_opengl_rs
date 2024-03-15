@@ -16,8 +16,8 @@ pub fn main_1_2_1() {
 
 #[derive(Default)]
 struct App {
-    vertex_array: Option<NativeVertexArray>,
-    program: Option<NativeProgram>,
+    vertex_array: Option<VertexArray>,
+    program: Option<Program>,
 }
 
 impl Application for App {

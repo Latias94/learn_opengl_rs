@@ -41,7 +41,7 @@ pub fn main_1_1_1() {
 
             let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
             let window_builder = winit::window::WindowBuilder::new()
-                .with_title("Hello triangle!")
+                .with_title("Hello window")
                 .with_inner_size(winit::dpi::LogicalSize::new(WIDTH, HEIGHT));
 
             let template = ConfigTemplateBuilder::new();
@@ -110,7 +110,7 @@ pub fn main_1_1_1() {
             gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
             gl_attr.set_context_version(3, 3);
             let window = video
-                .window("Hello triangle!", WIDTH, HEIGHT)
+                .window("Hello window", WIDTH, HEIGHT)
                 .opengl()
                 .resizable()
                 .build()
