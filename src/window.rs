@@ -132,27 +132,6 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
             )
         };
 
-        // Create a context from a sdl2 window
-        #[cfg(feature = "sdl2")]
-        let (gl, shader_version, window, mut events_loop, _context) = {
-            let sdl = sdl2::init().unwrap();
-            let video = sdl.video().unwrap();
-            let gl_attr = video.gl_attr();
-            gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
-            gl_attr.set_context_version(major, minor);
-            let window = video
-                .window(title.as_str(), width, height)
-                .opengl()
-                .resizable()
-                .build()
-                .unwrap();
-            let gl_context = window.gl_create_context().unwrap();
-            let gl =
-                glow::Context::from_loader_function(|s| video.gl_get_proc_address(s) as *const _);
-            let event_loop = sdl.event_pump().unwrap();
-            (gl, "#version 130", window, event_loop, gl_context)
-        };
-
         let ctx = GLContext { gl, shader_version };
 
         app.init(&ctx);
@@ -192,36 +171,6 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
                     }
                 }
             });
-        }
-
-        #[cfg(feature = "sdl2")]
-        {
-            let mut running = true;
-            let mut last_width = 0;
-            let mut last_height = 0;
-            while running {
-                {
-                    for event in events_loop.poll_iter() {
-                        match event {
-                            sdl2::event::Event::Quit { .. } => running = false,
-                            sdl2::event::Event::Window { win_event, .. } => match win_event {
-                                sdl2::event::WindowEvent::Resized(width, height) => {
-                                    if width != last_width || height != last_height {
-                                        last_width = width;
-                                        last_height = height;
-                                        app.resize(&ctx, width as u32, height as u32);
-                                    }
-                                }
-                                _ => {}
-                            },
-                            _ => {}
-                        }
-                    }
-                }
-                app.update(&ctx);
-                window.gl_swap_window();
-            }
-            app.exit(&ctx);
         }
 
         #[cfg(target_arch = "wasm32")]

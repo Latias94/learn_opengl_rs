@@ -101,27 +101,6 @@ pub fn main_1_1_1() {
             )
         };
 
-        // Create a context from a sdl2 window
-        #[cfg(feature = "sdl2")]
-        let (_gl, _shader_version, _window, mut events_loop, _context) = {
-            let sdl = sdl2::init().unwrap();
-            let video = sdl.video().unwrap();
-            let gl_attr = video.gl_attr();
-            gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
-            gl_attr.set_context_version(3, 3);
-            let window = video
-                .window("Hello window", WIDTH, HEIGHT)
-                .opengl()
-                .resizable()
-                .build()
-                .unwrap();
-            let gl_context = window.gl_create_context().unwrap();
-            let gl =
-                glow::Context::from_loader_function(|s| video.gl_get_proc_address(s) as *const _);
-            let event_loop = sdl.event_pump().unwrap();
-            (gl, "#version 130", window, event_loop, gl_context)
-        };
-
         // We handle events differently between targets
         #[cfg(feature = "glutin_winit")]
         {
@@ -139,21 +118,6 @@ pub fn main_1_1_1() {
                     }
                 }
             });
-        }
-
-        #[cfg(feature = "sdl2")]
-        {
-            let mut running = true;
-            while running {
-                {
-                    for event in events_loop.poll_iter() {
-                        match event {
-                            sdl2::event::Event::Quit { .. } => running = false,
-                            _ => {}
-                        }
-                    }
-                }
-            }
         }
 
         #[cfg(target_arch = "wasm32")]

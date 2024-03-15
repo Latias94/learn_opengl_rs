@@ -6,14 +6,6 @@ run TUTORIAL="1_1_1":
   @echo 'Run winit with TUTORIAL={{TUTORIAL}}'
   RUST_LOG=info cargo run --features=glutin_winit -- {{TUTORIAL}}
 
-winit TUTORIAL="1_1_1":
-  @echo 'Run winit with TUTORIAL={{TUTORIAL}}'
-  RUST_LOG=info cargo run --features=glutin_winit -- {{TUTORIAL}}
-
-sdl2 TUTORIAL="1_1_1":
-  @echo 'Run sdl2 with TUTORIAL={{TUTORIAL}}'
-  RUST_LOG=info cargo run --features=sdl2 -- {{TUTORIAL}}
-
 web:
   @echo 'Build and serve for web'
   cargo build --target wasm32-unknown-unknown && wasm-bindgen ./target/wasm32-unknown-unknown/debug/learn_opengl_rs.wasm --out-dir web --target web
