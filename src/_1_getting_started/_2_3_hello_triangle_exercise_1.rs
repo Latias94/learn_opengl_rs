@@ -2,19 +2,24 @@ use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_2_1() {
+pub fn main_1_2_3() {
     let init_info = WindowInitInfo::builder()
-        .title("Hello Triangle".to_string())
+        .title("Hello Triangle Exercise 1".to_string())
         .build();
     unsafe {
         run(init_info, App::default());
     }
 }
 
-const VERTICES: [f32; 9] = [
-    -0.5, -0.5, 0.0, //
-    0.5, -0.5, 0.0, //
-    0.0, 0.5, 0.0,
+const VERTICES: [f32; 18] = [
+    // first triangle
+    -0.9, -0.5, 0.0, // left
+    -0.0, -0.5, 0.0, // right
+    -0.45, 0.5, 0.0, // top
+    // second triangle
+    0.0, -0.5, 0.0, // left
+    0.9, -0.5, 0.0, // right
+    0.45, 0.5, 0.0, // top
 ];
 
 #[derive(Default)]
@@ -32,7 +37,8 @@ impl Application for App {
             let vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
-            let vbo = gl.create_buffer().expect("Cannot create buffer");
+            let vbo = gl.create_buffer().expect("Cannot create vbo buffer");
+
             gl.bind_vertex_array(Some(vao));
 
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
@@ -62,7 +68,7 @@ impl Application for App {
                 out vec4 FragColor;
                 void main()
                 {
-                    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+                    FragColor = vec4(1.0f, 0.5, 0.2f, 1.0f);
                 }"#,
             );
 
@@ -111,7 +117,8 @@ impl Application for App {
             // seeing as we only have a single VAO there's no need to bind it every time,
             // but we'll do so to keep things a bit more organized
             gl.bind_vertex_array(self.vao);
-            gl.draw_arrays(TRIANGLES, 0, 3);
+            gl.draw_arrays(TRIANGLES, 0, 6);
+            // gl.bind_vertex_array(None); // no need to unbind it every time
         }
     }
 

@@ -2,20 +2,23 @@ use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_2_1() {
+pub fn main_1_2_2() {
     let init_info = WindowInitInfo::builder()
-        .title("Hello Triangle".to_string())
+        .title("Hello Triangle Indexed".to_string())
         .build();
     unsafe {
         run(init_info, App::default());
     }
 }
 
-const VERTICES: [f32; 9] = [
-    -0.5, -0.5, 0.0, //
+const VERTICES: [f32; 12] = [
+    0.5, 0.5, 0.0, //
     0.5, -0.5, 0.0, //
-    0.0, 0.5, 0.0,
+    -0.5, -0.5, 0.0, //
+    -0.5, 0.5, 0.0, //
 ];
+
+const INDICES: [u32; 6] = [0, 1, 3, 1, 2, 3];
 
 #[derive(Default)]
 struct App {
@@ -32,12 +35,25 @@ impl Application for App {
             let vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
-            let vbo = gl.create_buffer().expect("Cannot create buffer");
+            let vbo = gl.create_buffer().expect("Cannot create vbo buffer");
+            let ebo = gl.create_buffer().expect("Cannot create ebo buffer");
+
+            // 1. bind Vertex Array Object
             gl.bind_vertex_array(Some(vao));
 
+            // 2. copy our vertices array in a vertex buffer for OpenGL to use
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
             gl.buffer_data_u8_slice(ARRAY_BUFFER, bytemuck::cast_slice(&VERTICES), STATIC_DRAW);
 
+            // 3. copy our index array in a element buffer for OpenGL to use
+            gl.bind_buffer(ELEMENT_ARRAY_BUFFER, Some(ebo));
+            gl.buffer_data_u8_slice(
+                ELEMENT_ARRAY_BUFFER,
+                bytemuck::cast_slice(&INDICES),
+                STATIC_DRAW,
+            );
+
+            // 4. then set the vertex attributes pointers
             gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
 
@@ -111,7 +127,8 @@ impl Application for App {
             // seeing as we only have a single VAO there's no need to bind it every time,
             // but we'll do so to keep things a bit more organized
             gl.bind_vertex_array(self.vao);
-            gl.draw_arrays(TRIANGLES, 0, 3);
+            gl.draw_elements(TRIANGLES, 6, UNSIGNED_INT, 0);
+            // gl.bind_vertex_array(None); // no need to unbind it every time
         }
     }
 

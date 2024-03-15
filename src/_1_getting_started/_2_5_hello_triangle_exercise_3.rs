@@ -2,26 +2,32 @@ use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_2_1() {
+pub fn main_1_2_5() {
     let init_info = WindowInitInfo::builder()
-        .title("Hello Triangle".to_string())
+        .title("Hello Triangle Exercise 3".to_string())
         .build();
     unsafe {
         run(init_info, App::default());
     }
 }
 
-const VERTICES: [f32; 9] = [
-    -0.5, -0.5, 0.0, //
-    0.5, -0.5, 0.0, //
-    0.0, 0.5, 0.0,
+const VERTICES: [f32; 18] = [
+    // first triangle
+    -0.9, -0.5, 0.0, // left
+    -0.0, -0.5, 0.0, // right
+    -0.45, 0.5, 0.0, // top
+    // second triangle
+    0.0, -0.5, 0.0, // left
+    0.9, -0.5, 0.0, // right
+    0.45, 0.5, 0.0, // top
 ];
 
 #[derive(Default)]
 struct App {
     vao: Option<VertexArray>,
     vbo: Option<Buffer>,
-    program: Option<Program>,
+    program_0: Option<Program>,
+    program_1: Option<Program>,
 }
 
 impl Application for App {
@@ -32,7 +38,8 @@ impl Application for App {
             let vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
-            let vbo = gl.create_buffer().expect("Cannot create buffer");
+            let vbo = gl.create_buffer().expect("Cannot create vbo buffer");
+
             gl.bind_vertex_array(Some(vao));
 
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
@@ -48,9 +55,7 @@ impl Application for App {
             // VAOs requires a call to glBindVertexArray anyway, so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
             gl.bind_vertex_array(None);
 
-            let program = gl.create_program().expect("Cannot create program");
-
-            let (vertex_shader_source, fragment_shader_source) = (
+            let (vertex_shader_source, fragment_shader_source_0, fragment_shader_source_1) = (
                 r#"layout (location = 0) in vec3 aPos;
                 void main()
                 {
@@ -62,41 +67,33 @@ impl Application for App {
                 out vec4 FragColor;
                 void main()
                 {
-                    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+                    FragColor = vec4(1.0f, 0.5, 0.2f, 1.0f);
+                }"#,
+                r#"
+                precision mediump float;
+                out vec4 FragColor;
+                void main()
+                {
+                    FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);
                 }"#,
             );
+            let program_0 = create_program(
+                &gl,
+                vertex_shader_source,
+                fragment_shader_source_0,
+                shader_version,
+            )
+            .expect("Failed to create program");
+            let program_1 = create_program(
+                &gl,
+                vertex_shader_source,
+                fragment_shader_source_1,
+                shader_version,
+            )
+            .expect("Failed to create program");
 
-            let shader_sources = [
-                (VERTEX_SHADER, vertex_shader_source),
-                (FRAGMENT_SHADER, fragment_shader_source),
-            ];
-
-            let mut shaders = Vec::with_capacity(shader_sources.len());
-
-            for (shader_type, shader_source) in shader_sources.iter() {
-                let shader = gl
-                    .create_shader(*shader_type)
-                    .expect("Cannot create shader");
-                gl.shader_source(shader, &format!("{}\n{}", shader_version, shader_source));
-                gl.compile_shader(shader);
-                if !gl.get_shader_compile_status(shader) {
-                    panic!("{}", gl.get_shader_info_log(shader));
-                }
-                gl.attach_shader(program, shader);
-                shaders.push(shader);
-            }
-
-            gl.link_program(program);
-            if !gl.get_program_link_status(program) {
-                panic!("{}", gl.get_program_info_log(program));
-            }
-
-            for shader in shaders {
-                gl.detach_shader(program, shader);
-                gl.delete_shader(shader);
-            }
-
-            self.program = Some(program);
+            self.program_0 = Some(program_0);
+            self.program_1 = Some(program_1);
             self.vao = Some(vao);
             self.vbo = Some(vbo);
         }
@@ -107,11 +104,15 @@ impl Application for App {
             let gl = &ctx.gl;
             gl.clear_color(0.1, 0.2, 0.3, 1.0);
             gl.clear(COLOR_BUFFER_BIT);
-            gl.use_program(self.program);
             // seeing as we only have a single VAO there's no need to bind it every time,
             // but we'll do so to keep things a bit more organized
             gl.bind_vertex_array(self.vao);
+
+            gl.use_program(self.program_0);
             gl.draw_arrays(TRIANGLES, 0, 3);
+
+            gl.use_program(self.program_1);
+            gl.draw_arrays(TRIANGLES, 3, 3);
         }
     }
 
@@ -126,7 +127,11 @@ impl Application for App {
     fn exit(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
         unsafe {
-            if let Some(program) = self.program {
+            if let Some(program) = self.program_0 {
+                gl.delete_program(program);
+            }
+
+            if let Some(program) = self.program_1 {
                 gl.delete_program(program);
             }
 
@@ -139,4 +144,56 @@ impl Application for App {
             }
         }
     }
+}
+
+fn create_program(
+    gl: &Context,
+    vertex_shader: &str,
+    fragment_shader: &str,
+    shader_version: &str,
+) -> Result<Program, String> {
+    let (vertex_shader, fragment_shader) = (
+        format!("{}\n{}", shader_version, vertex_shader),
+        format!("{}\n{}", shader_version, fragment_shader),
+    );
+
+    let program = unsafe { gl.create_program().expect("Cannot create program") };
+
+    let (vertex, fragment) = (
+        compile_shader(&gl, VERTEX_SHADER, &vertex_shader)?,
+        compile_shader(&gl, FRAGMENT_SHADER, &fragment_shader)?,
+    );
+
+    unsafe {
+        gl.attach_shader(program, vertex);
+        gl.attach_shader(program, fragment);
+        gl.link_program(program);
+    }
+
+    if !unsafe { gl.get_program_link_status(program) } {
+        return Err(unsafe { gl.get_program_info_log(program) });
+    }
+
+    unsafe {
+        gl.detach_shader(program, vertex);
+        gl.detach_shader(program, fragment);
+        gl.delete_shader(vertex);
+        gl.delete_shader(fragment);
+    }
+
+    Ok(program)
+}
+
+fn compile_shader(gl: &Context, shader_type: u32, source: &str) -> Result<Shader, String> {
+    let shader = unsafe { gl.create_shader(shader_type).expect("Cannot create shader") };
+    unsafe {
+        gl.shader_source(shader, source);
+        gl.compile_shader(shader);
+    }
+
+    if !unsafe { gl.get_shader_compile_status(shader) } {
+        return Err(unsafe { gl.get_shader_info_log(shader) });
+    }
+
+    Ok(shader)
 }

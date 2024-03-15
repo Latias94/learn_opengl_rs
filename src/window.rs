@@ -1,15 +1,24 @@
+use typed_builder::TypedBuilder;
+
 pub trait Application {
-    fn init(&mut self, ctx: &GLContext);
-    fn update(&mut self, ctx: &GLContext);
-    fn handle_event(&mut self, ctx: &GLContext);
-    fn exit(&mut self, ctx: &GLContext);
+    fn init(&mut self, _ctx: &GLContext) {}
+    fn update(&mut self, _ctx: &GLContext) {}
+    fn resize(&mut self, _ctx: &GLContext, _width: u32, _height: u32) {}
+    fn handle_event(&mut self, _ctx: &GLContext) {}
+    fn exit(&mut self, _ctx: &GLContext) {}
 }
 
+#[derive(TypedBuilder, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WindowInitInfo {
+    #[builder(default = 800)]
     pub width: u32,
+    #[builder(default = 600)]
     pub height: u32,
+    #[builder(default = "learn_opengl_rs".to_string())]
     pub title: String,
+    #[builder(default = 3)]
     pub major: u8,
+    #[builder(default = 3)]
     pub minor: u8,
 }
 
@@ -117,7 +126,7 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
                 gl,
                 gl_surface,
                 gl_context,
-                "#version 410",
+                "#version 330 core",
                 window,
                 event_loop,
             )
@@ -153,6 +162,10 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
         {
             use glutin::prelude::GlSurface;
             use winit::event::{Event, WindowEvent};
+
+            let mut last_width = 0;
+            let mut last_height = 0;
+
             let _ = event_loop.run(move |event, elwt| {
                 if let Event::WindowEvent { event, .. } = event {
                     match event {
@@ -164,6 +177,15 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
                             app.update(&ctx);
                             gl_surface.swap_buffers(&gl_context).unwrap();
                         }
+                        WindowEvent::Resized(physical_size) => {
+                            if physical_size.width != last_width
+                                || physical_size.height != last_height
+                            {
+                                last_width = physical_size.width;
+                                last_height = physical_size.height;
+                                app.resize(&ctx, physical_size.width, physical_size.height);
+                            }
+                        }
                         _ => (),
                     }
                 }
@@ -173,11 +195,23 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
         #[cfg(feature = "sdl2")]
         {
             let mut running = true;
+            let mut last_width = 0;
+            let mut last_height = 0;
             while running {
                 {
                     for event in events_loop.poll_iter() {
                         match event {
                             sdl2::event::Event::Quit { .. } => running = false,
+                            sdl2::event::Event::Window { win_event, .. } => match win_event {
+                                sdl2::event::WindowEvent::Resized(width, height) => {
+                                    if width != last_width || height != last_height {
+                                        last_width = width;
+                                        last_height = height;
+                                        app.resize(&ctx, width as u32, height as u32);
+                                    }
+                                }
+                                _ => {}
+                            },
                             _ => {}
                         }
                     }

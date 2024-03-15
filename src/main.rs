@@ -4,7 +4,7 @@ mod window;
 pub use _1_getting_started::*;
 use std::env;
 
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 fn main() {
@@ -41,6 +41,11 @@ pub fn run_tutorial(tutorial_id: String) {
         "1_1_1" => main_1_1_1(),
         "1_1_2" => main_1_1_2(),
         "1_2_1" => main_1_2_1(),
+        "1_2_2" => main_1_2_2(),
+        "1_2_3" => main_1_2_3(),
+        "1_2_4" => main_1_2_4(),
+        "1_2_5" => main_1_2_5(),
+        "1_3_1" => main_1_3_1(),
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }
 }

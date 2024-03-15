@@ -2,9 +2,9 @@ use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_2_1() {
+pub fn main_1_3_1() {
     let init_info = WindowInitInfo::builder()
-        .title("Hello Triangle".to_string())
+        .title("Shaders Uniform".to_string())
         .build();
     unsafe {
         run(init_info, App::default());
@@ -32,7 +32,8 @@ impl Application for App {
             let vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
-            let vbo = gl.create_buffer().expect("Cannot create buffer");
+            let vbo = gl.create_buffer().expect("Cannot create vbo buffer");
+
             gl.bind_vertex_array(Some(vao));
 
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
@@ -48,53 +49,28 @@ impl Application for App {
             // VAOs requires a call to glBindVertexArray anyway, so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
             gl.bind_vertex_array(None);
 
-            let program = gl.create_program().expect("Cannot create program");
-
             let (vertex_shader_source, fragment_shader_source) = (
                 r#"layout (location = 0) in vec3 aPos;
                 void main()
                 {
-                    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+                    gl_Position = vec4(aPos, 1.0);
                 }"#,
-                // precision mediump float; is needed for WebGL, or it will raise ERROR: 0:2: '' : No precision specified for (float)
                 r#"
                 precision mediump float;
                 out vec4 FragColor;
+                uniform vec4 ourColor;
                 void main()
                 {
-                    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+                    FragColor = ourColor;
                 }"#,
             );
-
-            let shader_sources = [
-                (VERTEX_SHADER, vertex_shader_source),
-                (FRAGMENT_SHADER, fragment_shader_source),
-            ];
-
-            let mut shaders = Vec::with_capacity(shader_sources.len());
-
-            for (shader_type, shader_source) in shader_sources.iter() {
-                let shader = gl
-                    .create_shader(*shader_type)
-                    .expect("Cannot create shader");
-                gl.shader_source(shader, &format!("{}\n{}", shader_version, shader_source));
-                gl.compile_shader(shader);
-                if !gl.get_shader_compile_status(shader) {
-                    panic!("{}", gl.get_shader_info_log(shader));
-                }
-                gl.attach_shader(program, shader);
-                shaders.push(shader);
-            }
-
-            gl.link_program(program);
-            if !gl.get_program_link_status(program) {
-                panic!("{}", gl.get_program_info_log(program));
-            }
-
-            for shader in shaders {
-                gl.detach_shader(program, shader);
-                gl.delete_shader(shader);
-            }
+            let program = create_program(
+                &gl,
+                vertex_shader_source,
+                fragment_shader_source,
+                shader_version,
+            )
+            .expect("Failed to create program");
 
             self.program = Some(program);
             self.vao = Some(vao);
@@ -107,10 +83,23 @@ impl Application for App {
             let gl = &ctx.gl;
             gl.clear_color(0.1, 0.2, 0.3, 1.0);
             gl.clear(COLOR_BUFFER_BIT);
-            gl.use_program(self.program);
             // seeing as we only have a single VAO there's no need to bind it every time,
             // but we'll do so to keep things a bit more organized
             gl.bind_vertex_array(self.vao);
+
+            gl.use_program(self.program);
+
+            // update shader uniform
+            let time = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs_f32();
+            let green_value = (time.sin() / 2.0) + 0.5;
+            let our_color = gl
+                .get_uniform_location(self.program.unwrap(), "ourColor")
+                .unwrap();
+            gl.uniform_4_f32(Some(&our_color), 0.0, green_value, 0.0, 1.0);
+
             gl.draw_arrays(TRIANGLES, 0, 3);
         }
     }
@@ -139,4 +128,56 @@ impl Application for App {
             }
         }
     }
+}
+
+fn create_program(
+    gl: &Context,
+    vertex_shader: &str,
+    fragment_shader: &str,
+    shader_version: &str,
+) -> Result<Program, String> {
+    let (vertex_shader, fragment_shader) = (
+        format!("{}\n{}", shader_version, vertex_shader),
+        format!("{}\n{}", shader_version, fragment_shader),
+    );
+
+    let program = unsafe { gl.create_program().expect("Cannot create program") };
+
+    let (vertex, fragment) = (
+        compile_shader(&gl, VERTEX_SHADER, &vertex_shader)?,
+        compile_shader(&gl, FRAGMENT_SHADER, &fragment_shader)?,
+    );
+
+    unsafe {
+        gl.attach_shader(program, vertex);
+        gl.attach_shader(program, fragment);
+        gl.link_program(program);
+    }
+
+    if !unsafe { gl.get_program_link_status(program) } {
+        return Err(unsafe { gl.get_program_info_log(program) });
+    }
+
+    unsafe {
+        gl.detach_shader(program, vertex);
+        gl.detach_shader(program, fragment);
+        gl.delete_shader(vertex);
+        gl.delete_shader(fragment);
+    }
+
+    Ok(program)
+}
+
+fn compile_shader(gl: &Context, shader_type: u32, source: &str) -> Result<Shader, String> {
+    let shader = unsafe { gl.create_shader(shader_type).expect("Cannot create shader") };
+    unsafe {
+        gl.shader_source(shader, source);
+        gl.compile_shader(shader);
+    }
+
+    if !unsafe { gl.get_shader_compile_status(shader) } {
+        return Err(unsafe { gl.get_shader_info_log(shader) });
+    }
+
+    Ok(shader)
 }

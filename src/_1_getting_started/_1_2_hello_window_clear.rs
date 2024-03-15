@@ -2,13 +2,9 @@ use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 
 pub fn main_1_1_2() {
-    let init_info = WindowInitInfo {
-        width: 1024,
-        height: 768,
-        title: "Hello window clear".to_string(),
-        major: 3,
-        minor: 3,
-    };
+    let init_info = WindowInitInfo::builder()
+        .title("Hello Window Clear".to_string())
+        .build();
     unsafe {
         run(init_info, App {});
     }
@@ -31,7 +27,11 @@ impl Application for App {
         }
     }
 
-    fn handle_event(&mut self, _ctx: &GLContext) {}
-
-    fn exit(&mut self, _ctx: &GLContext) {}
+    fn resize(&mut self, ctx: &GLContext, width: u32, height: u32) {
+        log::info!("Resizing to {}x{}", width, height);
+        unsafe {
+            let gl = &ctx.gl;
+            gl.viewport(0, 0, width as i32, height as i32);
+        }
+    }
 }

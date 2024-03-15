@@ -1,3 +1,7 @@
+build:
+  @echo 'Build for desktop'
+  cargo build --features=glutin_winit
+
 run TUTORIAL="1_1_1":
   @echo 'Run winit with TUTORIAL={{TUTORIAL}}'
   RUST_LOG=info cargo run --features=glutin_winit -- {{TUTORIAL}}

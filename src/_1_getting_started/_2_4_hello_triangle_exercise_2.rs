@@ -2,25 +2,32 @@ use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_2_1() {
+pub fn main_1_2_4() {
     let init_info = WindowInitInfo::builder()
-        .title("Hello Triangle".to_string())
+        .title("Hello Triangle Exercise 2".to_string())
         .build();
     unsafe {
         run(init_info, App::default());
     }
 }
 
-const VERTICES: [f32; 9] = [
-    -0.5, -0.5, 0.0, //
-    0.5, -0.5, 0.0, //
-    0.0, 0.5, 0.0,
+const FIRST_TRIANGLE: [f32; 9] = [
+    -0.9, -0.5, 0.0, // left
+    -0.0, -0.5, 0.0, // right
+    -0.45, 0.5, 0.0, // top
+];
+const SECOND_TRIANGLE: [f32; 9] = [
+    0.0, -0.5, 0.0, // left
+    0.9, -0.5, 0.0, // right
+    0.45, 0.5, 0.0, // top
 ];
 
 #[derive(Default)]
 struct App {
-    vao: Option<VertexArray>,
-    vbo: Option<Buffer>,
+    first_vao: Option<VertexArray>,
+    first_vbo: Option<Buffer>,
+    second_vao: Option<VertexArray>,
+    second_vbo: Option<Buffer>,
     program: Option<Program>,
 }
 
@@ -29,14 +36,35 @@ impl Application for App {
         unsafe {
             let gl = &ctx.gl;
             let shader_version = ctx.shader_version;
-            let vao = gl
+            let first_vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
-            let vbo = gl.create_buffer().expect("Cannot create buffer");
-            gl.bind_vertex_array(Some(vao));
+            let first_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
+            let second_vao = gl
+                .create_vertex_array()
+                .expect("Cannot create vertex array");
+            let second_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
 
-            gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
-            gl.buffer_data_u8_slice(ARRAY_BUFFER, bytemuck::cast_slice(&VERTICES), STATIC_DRAW);
+            gl.bind_vertex_array(Some(first_vao));
+
+            gl.bind_buffer(ARRAY_BUFFER, Some(first_vbo));
+            gl.buffer_data_u8_slice(
+                ARRAY_BUFFER,
+                bytemuck::cast_slice(&FIRST_TRIANGLE),
+                STATIC_DRAW,
+            );
+
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
+            gl.enable_vertex_attrib_array(0);
+
+            gl.bind_vertex_array(Some(second_vao));
+
+            gl.bind_buffer(ARRAY_BUFFER, Some(second_vbo));
+            gl.buffer_data_u8_slice(
+                ARRAY_BUFFER,
+                bytemuck::cast_slice(&SECOND_TRIANGLE),
+                STATIC_DRAW,
+            );
 
             gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
@@ -62,7 +90,7 @@ impl Application for App {
                 out vec4 FragColor;
                 void main()
                 {
-                    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+                    FragColor = vec4(1.0f, 0.5, 0.2f, 1.0f);
                 }"#,
             );
 
@@ -97,8 +125,10 @@ impl Application for App {
             }
 
             self.program = Some(program);
-            self.vao = Some(vao);
-            self.vbo = Some(vbo);
+            self.first_vao = Some(first_vao);
+            self.first_vbo = Some(first_vbo);
+            self.second_vao = Some(second_vao);
+            self.second_vbo = Some(second_vbo);
         }
     }
 
@@ -108,10 +138,13 @@ impl Application for App {
             gl.clear_color(0.1, 0.2, 0.3, 1.0);
             gl.clear(COLOR_BUFFER_BIT);
             gl.use_program(self.program);
-            // seeing as we only have a single VAO there's no need to bind it every time,
-            // but we'll do so to keep things a bit more organized
-            gl.bind_vertex_array(self.vao);
+
+            gl.bind_vertex_array(self.first_vao);
             gl.draw_arrays(TRIANGLES, 0, 3);
+
+            gl.bind_vertex_array(self.second_vao);
+            gl.draw_arrays(TRIANGLES, 0, 3);
+            // gl.bind_vertex_array(None); // no need to unbind it every time
         }
     }
 
@@ -130,11 +163,19 @@ impl Application for App {
                 gl.delete_program(program);
             }
 
-            if let Some(vertex_array) = self.vao {
+            if let Some(vertex_array) = self.first_vao {
                 gl.delete_vertex_array(vertex_array);
             }
 
-            if let Some(buffer) = self.vbo {
+            if let Some(buffer) = self.first_vbo {
+                gl.delete_buffer(buffer);
+            }
+
+            if let Some(vertex_array) = self.second_vao {
+                gl.delete_vertex_array(vertex_array);
+            }
+
+            if let Some(buffer) = self.second_vbo {
                 gl.delete_buffer(buffer);
             }
         }
