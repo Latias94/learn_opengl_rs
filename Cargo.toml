@@ -3,6 +3,9 @@ name = "learn_opengl_rs"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 glow = "0.13"
 cfg-if = "1"

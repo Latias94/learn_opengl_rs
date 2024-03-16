@@ -149,7 +149,7 @@ impl MyShader {
 
         shader_source
     }
-    
+
     pub fn program(&self) -> Program {
         self.program
     }
