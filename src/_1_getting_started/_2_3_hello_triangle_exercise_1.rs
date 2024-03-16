@@ -7,7 +7,7 @@ pub fn main_1_2_3() {
         .title("Hello Triangle Exercise 1".to_string())
         .build();
     unsafe {
-        run(init_info, App::default());
+        run::<App>(init_info);
     }
 }
 
@@ -30,10 +30,14 @@ struct App {
 }
 
 impl Application for App {
+    fn new(_ctx: &GLContext) -> Self {
+        Self::default()
+    }
+
     fn init(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
-            let shader_version = ctx.shader_version;
+            let shader_version = ctx.suggested_shader_version;
             let vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
@@ -111,7 +115,7 @@ impl Application for App {
     fn update(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
-            gl.clear_color(0.1, 0.2, 0.3, 1.0);
+            gl.clear_color(0.2, 0.3, 0.3, 1.0);
             gl.clear(COLOR_BUFFER_BIT);
             gl.use_program(self.program);
             // seeing as we only have a single VAO there's no need to bind it every time,

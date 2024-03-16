@@ -1,6 +1,7 @@
 use typed_builder::TypedBuilder;
 
 pub trait Application {
+    fn new(_ctx: &GLContext) -> Self;
     fn init(&mut self, _ctx: &GLContext) {}
     fn update(&mut self, _ctx: &GLContext) {}
     fn resize(&mut self, _ctx: &GLContext, _width: u32, _height: u32) {}
@@ -24,10 +25,10 @@ pub struct WindowInitInfo {
 
 pub struct GLContext {
     pub gl: glow::Context,
-    pub shader_version: &'static str,
+    pub suggested_shader_version: &'static str,
 }
 
-pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
+pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
     unsafe {
         // Create a context from a WebGL2 context on wasm32 targets
         #[cfg(target_arch = "wasm32")]
@@ -58,7 +59,7 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
         let minor = init_info.minor;
 
         // Create a context from a glutin window on non-wasm32 targets
-        #[cfg(feature = "glutin_winit")]
+        #[cfg(not(target_arch = "wasm32"))]
         let (gl, gl_surface, gl_context, shader_version, window, event_loop) = {
             use glutin::{
                 config::{ConfigTemplateBuilder, GlConfig},
@@ -132,12 +133,16 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo, mut app: App) {
             )
         };
 
-        let ctx = GLContext { gl, shader_version };
+        let ctx = GLContext {
+            gl,
+            suggested_shader_version: shader_version,
+        };
 
+        let mut app = App::new(&ctx);
         app.init(&ctx);
 
         // We handle events differently between targets
-        #[cfg(feature = "glutin_winit")]
+        #[cfg(not(target_arch = "wasm32"))]
         {
             use glutin::prelude::GlSurface;
             use winit::event::{Event, WindowEvent};

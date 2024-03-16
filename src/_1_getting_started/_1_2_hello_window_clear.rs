@@ -6,13 +6,18 @@ pub fn main_1_1_2() {
         .title("Hello Window Clear".to_string())
         .build();
     unsafe {
-        run(init_info, App {});
+        run::<App>(init_info);
     }
 }
 
+#[derive(Default)]
 struct App {}
 
 impl Application for App {
+    fn new(_ctx: &GLContext) -> Self {
+        Self::default()
+    }
+
     fn init(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;

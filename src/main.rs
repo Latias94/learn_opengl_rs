@@ -1,4 +1,5 @@
 pub mod _1_getting_started;
+mod shader;
 mod window;
 
 pub use _1_getting_started::*;
@@ -46,6 +47,14 @@ pub fn run_tutorial(tutorial_id: String) {
         "1_2_4" => main_1_2_4(),
         "1_2_5" => main_1_2_5(),
         "1_3_1" => main_1_3_1(),
+        "1_3_2" => main_1_3_2(),
+        "1_3_3" => main_1_3_3(),
+        "1_3_4" => main_1_3_4(),
+        "1_3_5" => main_1_3_5(),
+        "1_3_6" => main_1_3_6(),
+        "1_4_1" => main_1_4_1(),
+        "1_4_2" => main_1_4_2(),
+        "1_4_3" => main_1_4_3(),
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }
 }

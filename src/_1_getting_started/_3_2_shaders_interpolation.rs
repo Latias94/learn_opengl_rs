@@ -1,21 +1,21 @@
 use crate::window::{run, Application, GLContext, WindowInitInfo};
-use chrono::Utc;
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_3_1() {
+pub fn main_1_3_2() {
     let init_info = WindowInitInfo::builder()
-        .title("Shaders Uniform".to_string())
+        .title("Shaders Interpolation".to_string())
         .build();
     unsafe {
         run::<App>(init_info);
     }
 }
 
-const VERTICES: [f32; 9] = [
-    -0.5, -0.5, 0.0, //
-    0.5, -0.5, 0.0, //
-    0.0, 0.5, 0.0,
+const VERTICES: [f32; 18] = [
+    // pos           color
+    0.5, -0.5, 0.0, 1.0, 0.0, 0.0, //
+    -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, //
+    0.0, 0.5, 0.0, 0.0, 0.0, 1.0, //
 ];
 
 #[derive(Default)]
@@ -23,14 +23,12 @@ struct App {
     vao: Option<VertexArray>,
     vbo: Option<Buffer>,
     program: Option<Program>,
-    start: chrono::DateTime<Utc>,
 }
 
 impl Application for App {
     fn new(_ctx: &GLContext) -> Self {
         Self::default()
     }
-
     fn init(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
@@ -45,8 +43,18 @@ impl Application for App {
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
             gl.buffer_data_u8_slice(ARRAY_BUFFER, bytemuck::cast_slice(&VERTICES), STATIC_DRAW);
 
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 6 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
+
+            gl.vertex_attrib_pointer_f32(
+                1,
+                3,
+                FLOAT,
+                false,
+                6 * size_of::<f32>() as i32,
+                3 * size_of::<f32>() as i32,
+            );
+            gl.enable_vertex_attrib_array(1);
 
             // note that this is allowed, the call to glVertexAttribPointer registered VBO
             // as the vertex attribute's bound vertex buffer object so afterward we can safely unbind
@@ -57,17 +65,20 @@ impl Application for App {
 
             let (vertex_shader_source, fragment_shader_source) = (
                 r#"layout (location = 0) in vec3 aPos;
+                layout (location = 1) in vec3 aColor; 
+                out vec3 ourColor;
                 void main()
                 {
                     gl_Position = vec4(aPos, 1.0);
+                    ourColor = aColor;
                 }"#,
                 r#"
                 precision mediump float;
                 out vec4 FragColor;
-                uniform vec4 ourColor;
+                in vec3 ourColor;
                 void main()
                 {
-                    FragColor = ourColor;
+                    FragColor = vec4(ourColor, 1.0);
                 }"#,
             );
             let program = create_program(
@@ -81,7 +92,6 @@ impl Application for App {
             self.program = Some(program);
             self.vao = Some(vao);
             self.vbo = Some(vbo);
-            self.start = Utc::now();
         }
     }
 
@@ -92,16 +102,6 @@ impl Application for App {
             gl.clear(COLOR_BUFFER_BIT);
 
             gl.use_program(self.program);
-
-            let current = Utc::now();
-            let duration = current - self.start;
-            let time = duration.num_milliseconds() as f32 / 1000.0;
-            let green_value = (time.sin() / 2.0) + 0.5;
-
-            let our_color = gl
-                .get_uniform_location(self.program.unwrap(), "ourColor")
-                .unwrap();
-            gl.uniform_4_f32(Some(&our_color), 0.0, green_value, 0.0, 1.0);
 
             // seeing as we only have a single VAO there's no need to bind it every time,
             // but we'll do so to keep things a bit more organized

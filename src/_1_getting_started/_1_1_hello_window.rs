@@ -27,7 +27,7 @@ pub fn main_1_1_1() {
         };
 
         // Create a context from a glutin window on non-wasm32 targets
-        #[cfg(feature = "glutin_winit")]
+        #[cfg(not(target_arch = "wasm32"))]
         let (_gl, _gl_surface, _gl_context, _shader_version, _window, event_loop) = {
             use glutin::{
                 config::{ConfigTemplateBuilder, GlConfig},
@@ -102,7 +102,7 @@ pub fn main_1_1_1() {
         };
 
         // We handle events differently between targets
-        #[cfg(feature = "glutin_winit")]
+        #[cfg(not(target_arch = "wasm32"))]
         {
             use winit::event::{Event, WindowEvent};
             let _ = event_loop.run(move |event, elwt| {
