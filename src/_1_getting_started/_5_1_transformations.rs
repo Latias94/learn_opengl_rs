@@ -1,25 +1,27 @@
 use crate::shader::MyShader;
 use crate::window::{run, Application, GLContext, WindowInitInfo};
+use chrono::Utc;
 use glow::*;
 use image::GenericImageView;
+use nalgebra_glm as glm;
 use std::mem::size_of;
 
-pub fn main_1_4_3() {
+pub fn main_1_5_1() {
     let init_info = WindowInitInfo::builder()
-        .title("Textures Exercise 1".to_string())
+        .title("Transformations".to_string())
         .build();
     unsafe {
         run::<App>(init_info);
     }
 }
 
-// rectangle, pos color tex_coord
-const VERTICES: [f32; 32] = [
-    // pos           color        tex_coord
-    0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // upper left
-    0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // lower left
-    -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // lower right
-    -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // upper right
+// rectangle, pos tex_coord
+const VERTICES: [f32; 20] = [
+    // pos         tex_coord
+    0.5, 0.5, 0.0, 1.0, 1.0, // upper left
+    0.5, -0.5, 0.0, 1.0, 0.0, // lower left
+    -0.5, -0.5, 0.0, 0.0, 0.0, // lower right
+    -0.5, 0.5, 0.0, 0.0, 1.0, // upper right
 ];
 
 const INDICES: [u32; 6] = [0, 1, 3, 1, 2, 3];
@@ -30,6 +32,7 @@ struct App {
     texture_1: Option<Texture>,
     texture_2: Option<Texture>,
     shader: MyShader,
+    start: chrono::DateTime<Utc>,
 }
 
 impl Application for App {
@@ -38,8 +41,8 @@ impl Application for App {
         let shader = MyShader::new_from_source(
             gl,
             // embedded shader
-            include_str!("./shaders/4.1.texture.vs"),
-            include_str!("./shaders/4.3.texture.fs"),
+            include_str!("./shaders/5.1.transform.vs"),
+            include_str!("./shaders/5.1.transform.fs"),
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
@@ -49,6 +52,7 @@ impl Application for App {
             vbo: None,
             texture_1: None,
             texture_2: None,
+            start: Utc::now(),
         }
     }
 
@@ -72,28 +76,18 @@ impl Application for App {
                 STATIC_DRAW,
             );
 
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 8 * size_of::<f32>() as i32, 0);
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 5 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
 
             gl.vertex_attrib_pointer_f32(
                 1,
-                3,
+                2,
                 FLOAT,
                 false,
-                8 * size_of::<f32>() as i32,
-                3 * size_of::<f32>() as i32,
+                5 * size_of::<f32>() as i32,
+                (3 * size_of::<f32>()) as i32,
             );
             gl.enable_vertex_attrib_array(1);
-
-            gl.vertex_attrib_pointer_f32(
-                2,
-                2,
-                FLOAT,
-                false,
-                8 * size_of::<f32>() as i32,
-                6 * size_of::<f32>() as i32,
-            );
-            gl.enable_vertex_attrib_array(2);
 
             // texture 1
             // ---------
@@ -161,12 +155,7 @@ impl Application for App {
             // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
             // -------------------------------------------------------------------------------------------
             self.shader.use_shader(gl);
-            // either set it manually like so:
-            let location = gl
-                .get_uniform_location(self.shader.program(), "texture1")
-                .unwrap();
-            gl.uniform_1_i32(Some(&location), 0);
-            // or set it via the texture class
+            self.shader.set_int(gl, "texture1", 0);
             self.shader.set_int(gl, "texture2", 1);
 
             gl.bind_buffer(ARRAY_BUFFER, None);
@@ -193,10 +182,19 @@ impl Application for App {
             gl.active_texture(TEXTURE1);
             gl.bind_texture(TEXTURE_2D, self.texture_2);
 
+            // create translations
+            let mut transform = glm::Mat4::identity();
+            transform = glm::translate(&transform, &glm::vec3(0.5, -0.5, 0.0));
+            let now = Utc::now();
+            let duration = now - self.start;
+            let angle = duration.num_milliseconds() as f32 / 1000.0;
+            transform = glm::rotate(&transform, angle, &glm::Vec3::z());
+
             self.shader.use_shader(gl);
 
-            // seeing as we only have a single VAO there's no need to bind it every time,
-            // but we'll do so to keep things a bit more organized
+            let transform_loc = gl.get_uniform_location(self.shader.program(), "transform");
+            gl.uniform_matrix_4_f32_slice(transform_loc.as_ref(), false, transform.as_slice());
+
             gl.bind_vertex_array(self.vao);
             gl.draw_elements(
                 // mode, count, type, indices

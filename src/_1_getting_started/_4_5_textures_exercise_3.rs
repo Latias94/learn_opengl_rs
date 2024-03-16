@@ -1,5 +1,5 @@
 use crate::shader::MyShader;
-use crate::window::{run, Application, GLContext, Key, WindowInitInfo};
+use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use image::GenericImageView;
 use std::mem::size_of;
@@ -221,7 +221,7 @@ impl Application for App {
     fn exit(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
         unsafe {
-            self.shader.delete(&gl);
+            self.shader.delete(gl);
 
             if let Some(vertex_array) = self.vao {
                 gl.delete_vertex_array(vertex_array);

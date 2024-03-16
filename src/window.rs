@@ -1,6 +1,4 @@
 use typed_builder::TypedBuilder;
-use winit::keyboard;
-use winit::keyboard::NamedKey;
 
 pub trait Application {
     fn new(_ctx: &GLContext) -> Self;
@@ -215,9 +213,10 @@ pub enum Key {
     Escape,
 }
 
-pub fn map_winit_key(key: keyboard::Key) -> Key {
+#[cfg(not(target_arch = "wasm32"))]
+pub fn map_winit_key(key: winit::keyboard::Key) -> Key {
     match key {
-        keyboard::Key::Character(c) => {
+        winit::keyboard::Key::Character(c) => {
             if c == "w" {
                 Key::W
             } else if c == "a" {
@@ -234,18 +233,18 @@ pub fn map_winit_key(key: keyboard::Key) -> Key {
                 Key::None
             }
         }
-        keyboard::Key::Named(n) => {
-            if n == NamedKey::Escape {
+        winit::keyboard::Key::Named(n) => {
+            if n == winit::keyboard::NamedKey::Escape {
                 Key::Escape
-            } else if n == NamedKey::ArrowUp {
+            } else if n == winit::keyboard::NamedKey::ArrowUp {
                 Key::Up
-            } else if n == NamedKey::ArrowDown {
+            } else if n == winit::keyboard::NamedKey::ArrowDown {
                 Key::Down
-            } else if n == NamedKey::ArrowLeft {
+            } else if n == winit::keyboard::NamedKey::ArrowLeft {
                 Key::Left
-            } else if n == NamedKey::ArrowRight {
+            } else if n == winit::keyboard::NamedKey::ArrowRight {
                 Key::Right
-            } else if n == NamedKey::Space {
+            } else if n == winit::keyboard::NamedKey::Space {
                 Key::Space
             } else {
                 Key::None

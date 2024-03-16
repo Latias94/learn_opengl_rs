@@ -11,6 +11,7 @@ typed-builder = "0.18"
 bytemuck = { version = "1.15", features = ["derive"] }
 chrono = "0.4"
 image = "0.25"
+nalgebra-glm = "0.18"
 
 [target.'cfg(not(any(target_arch = "wasm32")))'.dependencies]
 glutin = { version = "0.31", optional = true }
