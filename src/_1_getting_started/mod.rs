@@ -54,3 +54,9 @@ pub use _4_6_textures_exercise_4::main_1_4_6;
 
 pub mod _5_1_transformations;
 pub use _5_1_transformations::main_1_5_1;
+
+pub mod _5_2_transformations_exercise_1;
+pub use _5_2_transformations_exercise_1::main_1_5_2;
+
+pub mod _5_3_transformations_exercise_2;
+pub use _5_3_transformations_exercise_2::main_1_5_3;
