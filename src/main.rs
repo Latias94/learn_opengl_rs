@@ -55,6 +55,9 @@ pub fn run_tutorial(tutorial_id: String) {
         "1_4_1" => main_1_4_1(),
         "1_4_2" => main_1_4_2(),
         "1_4_3" => main_1_4_3(),
+        "1_4_4" => main_1_4_4(),
+        "1_4_5" => main_1_4_5(),
+        "1_4_6" => main_1_4_6(),
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }
 }

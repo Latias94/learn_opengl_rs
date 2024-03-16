@@ -42,3 +42,12 @@ pub use _4_2_textures_combined::main_1_4_2;
 
 pub mod _4_3_textures_exercise_1;
 pub use _4_3_textures_exercise_1::main_1_4_3;
+
+pub mod _4_4_textures_exercise_2;
+pub use _4_4_textures_exercise_2::main_1_4_4;
+
+pub mod _4_5_textures_exercise_3;
+pub use _4_5_textures_exercise_3::main_1_4_5;
+
+pub mod _4_6_textures_exercise_4;
+pub use _4_6_textures_exercise_4::main_1_4_6;

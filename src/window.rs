@@ -1,11 +1,13 @@
 use typed_builder::TypedBuilder;
+use winit::keyboard;
+use winit::keyboard::NamedKey;
 
 pub trait Application {
     fn new(_ctx: &GLContext) -> Self;
     fn init(&mut self, _ctx: &GLContext) {}
     fn update(&mut self, _ctx: &GLContext) {}
     fn resize(&mut self, _ctx: &GLContext, _width: u32, _height: u32) {}
-    fn handle_event(&mut self, _ctx: &GLContext) {}
+    fn handle_input(&mut self, _ctx: &GLContext, key: Key, is_pressed: bool) {}
     fn exit(&mut self, _ctx: &GLContext) {}
 }
 
@@ -172,6 +174,14 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
                                 window.request_redraw();
                             }
                         }
+                        WindowEvent::KeyboardInput { event, .. } => {
+                            let key = map_winit_key(event.logical_key);
+                            app.handle_input(
+                                &ctx,
+                                key,
+                                event.state == winit::event::ElementState::Pressed,
+                            );
+                        }
                         _ => (),
                     }
                 }
@@ -185,5 +195,62 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
             app.update(&ctx);
             app.exit(&ctx);
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Key {
+    None,
+    W,
+    A,
+    S,
+    D,
+    Q,
+    E,
+    Up,
+    Down,
+    Left,
+    Right,
+    Space,
+    Escape,
+}
+
+pub fn map_winit_key(key: keyboard::Key) -> Key {
+    match key {
+        keyboard::Key::Character(c) => {
+            if c == "w" {
+                Key::W
+            } else if c == "a" {
+                Key::A
+            } else if c == "s" {
+                Key::S
+            } else if c == "d" {
+                Key::D
+            } else if c == "q" {
+                Key::Q
+            } else if c == "e" {
+                Key::E
+            } else {
+                Key::None
+            }
+        }
+        keyboard::Key::Named(n) => {
+            if n == NamedKey::Escape {
+                Key::Escape
+            } else if n == NamedKey::ArrowUp {
+                Key::Up
+            } else if n == NamedKey::ArrowDown {
+                Key::Down
+            } else if n == NamedKey::ArrowLeft {
+                Key::Left
+            } else if n == NamedKey::ArrowRight {
+                Key::Right
+            } else if n == NamedKey::Space {
+                Key::Space
+            } else {
+                Key::None
+            }
+        }
+        _ => Key::None,
     }
 }
