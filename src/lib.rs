@@ -1,7 +1,8 @@
-mod _1_getting_started;
+mod camera;
 mod shader;
 mod window;
 
+mod _1_getting_started;
 use _1_getting_started::*;
 
 #[cfg(target_arch = "wasm32")]
@@ -40,6 +41,7 @@ pub fn run_tutorial(tutorial_id: String) {
         "1_7_1" => main_1_7_1(),
         "1_7_2" => main_1_7_2(),
         "1_7_3" => main_1_7_3(),
+        "1_7_4" => main_1_7_4(),
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }
 }

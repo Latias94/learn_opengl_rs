@@ -81,3 +81,6 @@ pub use _7_2_camera_keyboard_dt::main_1_7_2;
 
 pub mod _7_3_camera_mouse_zoom;
 pub use _7_3_camera_mouse_zoom::main_1_7_3;
+
+pub mod _7_4_camera_class;
+pub use _7_4_camera_class::main_1_7_4;
