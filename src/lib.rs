@@ -3,7 +3,10 @@ mod shader;
 mod window;
 
 mod _1_getting_started;
+mod _2_lighting;
+
 use _1_getting_started::*;
+use _2_lighting::*;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -44,6 +47,7 @@ pub fn run_tutorial(tutorial_id: String) {
         "1_7_4" => main_1_7_4(),
         "1_7_5" => main_1_7_5(),
         "1_7_6" => main_1_7_6(),
+        "2_1_1" => main_2_1_1(),
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }
 }
