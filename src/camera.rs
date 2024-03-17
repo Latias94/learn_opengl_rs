@@ -52,6 +52,7 @@ impl Default for Camera {
     }
 }
 
+#[allow(dead_code)]
 impl Camera {
     /// constructor with vectors
     pub fn new(position: glm::Vec3, up: glm::Vec3, yaw: f32, pitch: f32) -> Self {
@@ -67,6 +68,7 @@ impl Camera {
     }
 
     /// constructor with scalar values
+    #[allow(clippy::too_many_arguments)]
     pub fn new_with_scalar(
         pos_x: f32,
         pos_y: f32,

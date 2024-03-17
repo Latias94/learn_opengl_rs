@@ -104,6 +104,13 @@ impl MyShader {
             gl.uniform_matrix_4_f32_slice(Some(&location), false, value.as_slice());
         }
     }
+    
+    pub fn set_vec3(&self, gl: &Context, name: &str, value: &nalgebra_glm::Vec3) {
+        unsafe {
+            let location = gl.get_uniform_location(self.program, name).unwrap();
+            gl.uniform_3_f32(Some(&location), value.x, value.y, value.z);
+        }
+    }
 
     pub fn compile_shader(
         gl: &Context,
@@ -147,7 +154,7 @@ impl MyShader {
             shader_source.to_string()
         };
 
-        // if fragment shader dont have precision defined, insert it to second line
+        // if fragment shader don't have precision defined, insert it to the second line
         let shader_source =
             if shader_type == ShaderType::Fragment && !shader_source.contains("precision") {
                 let mut lines = shader_source.lines();

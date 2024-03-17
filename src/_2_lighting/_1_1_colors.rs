@@ -13,59 +13,61 @@ pub fn main_2_1_1() {
     }
 }
 
-// rectangle, pos tex_coord
 #[rustfmt::skip]
-const VERTICES: [f32; 180] = [
-    // pos            tex_coord
-    -0.5, -0.5, -0.5,  0.0, 0.0,
-    0.5, -0.5, -0.5,  1.0, 0.0,
-    0.5,  0.5, -0.5,  1.0, 1.0,
-    0.5,  0.5, -0.5,  1.0, 1.0,
-    -0.5,  0.5, -0.5,  0.0, 1.0,
-    -0.5, -0.5, -0.5,  0.0, 0.0,
+const VERTICES: [f32; 108] = [
+    // pos           
+    -0.5, -0.5, -0.5,
+    0.5, -0.5, -0.5, 
+    0.5,  0.5, -0.5, 
+    0.5,  0.5, -0.5, 
+    -0.5,  0.5, -0.5,  
+    -0.5, -0.5, -0.5,
 
-    -0.5, -0.5,  0.5,  0.0, 0.0,
-    0.5, -0.5,  0.5,  1.0, 0.0,
-    0.5,  0.5,  0.5,  1.0, 1.0,
-    0.5,  0.5,  0.5,  1.0, 1.0,
-    -0.5,  0.5,  0.5,  0.0, 1.0,
-    -0.5, -0.5,  0.5,  0.0, 0.0,
+    -0.5, -0.5,  0.5,
+    0.5, -0.5,  0.5, 
+    0.5,  0.5,  0.5, 
+    0.5,  0.5,  0.5, 
+    -0.5,  0.5,  0.5,  
+    -0.5, -0.5,  0.5,
 
-    -0.5,  0.5,  0.5,  1.0, 0.0,
-    -0.5,  0.5, -0.5,  1.0, 1.0,
-    -0.5, -0.5, -0.5,  0.0, 1.0,
-    -0.5, -0.5, -0.5,  0.0, 1.0,
-    -0.5, -0.5,  0.5,  0.0, 0.0,
-    -0.5,  0.5,  0.5,  1.0, 0.0,
+    -0.5,  0.5,  0.5, 
+    -0.5,  0.5, -0.5, 
+    -0.5, -0.5, -0.5,  
+    -0.5, -0.5, -0.5,  
+    -0.5, -0.5,  0.5,
+    -0.5,  0.5,  0.5, 
 
-    0.5,  0.5,  0.5,  1.0, 0.0,
-    0.5,  0.5, -0.5,  1.0, 1.0,
-    0.5, -0.5, -0.5,  0.0, 1.0,
-    0.5, -0.5, -0.5,  0.0, 1.0,
-    0.5, -0.5,  0.5,  0.0, 0.0,
-    0.5,  0.5,  0.5,  1.0, 0.0,
+    0.5,  0.5,  0.5, 
+    0.5,  0.5, -0.5, 
+    0.5, -0.5, -0.5,  
+    0.5, -0.5, -0.5,  
+    0.5, -0.5,  0.5,
+    0.5,  0.5,  0.5, 
 
-    -0.5, -0.5, -0.5,  0.0, 1.0,
-    0.5, -0.5, -0.5,  1.0, 1.0,
-    0.5, -0.5,  0.5,  1.0, 0.0,
-    0.5, -0.5,  0.5,  1.0, 0.0,
-    -0.5, -0.5,  0.5,  0.0, 0.0,
-    -0.5, -0.5, -0.5,  0.0, 1.0,
+    -0.5, -0.5, -0.5,  
+    0.5, -0.5, -0.5, 
+    0.5, -0.5,  0.5, 
+    0.5, -0.5,  0.5, 
+    -0.5, -0.5,  0.5,
+    -0.5, -0.5, -0.5,  
 
-    -0.5,  0.5, -0.5,  0.0, 1.0,
-    0.5,  0.5, -0.5,  1.0, 1.0,
-    0.5,  0.5,  0.5,  1.0, 0.0,
-    0.5,  0.5,  0.5,  1.0, 0.0,
-    -0.5,  0.5,  0.5,  0.0, 0.0,
-    -0.5,  0.5, -0.5,  0.0, 1.0
+    -0.5,  0.5, -0.5,  
+    0.5,  0.5, -0.5, 
+    0.5,  0.5,  0.5, 
+    0.5,  0.5,  0.5, 
+    -0.5,  0.5,  0.5,
+    -0.5,  0.5, -0.5,
 ];
 
 const CAMERA_UP: glm::Vec3 = glm::Vec3::new(0.0, 1.0, 0.0);
+const LIGHT_POS: glm::Vec3 = glm::Vec3::new(1.2, 1.0, 2.0);
 
 struct App {
-    vao: Option<VertexArray>,
+    cube_vao: Option<VertexArray>,
+    light_vao: Option<VertexArray>,
     vbo: Option<Buffer>,
-    shader: MyShader,
+    lighting_shader: MyShader,
+    lighting_cube_shader: MyShader,
     first_mouse: bool,
     last_x: f64,
     last_y: f64,
@@ -75,7 +77,7 @@ struct App {
 impl Application for App {
     fn new(ctx: &GLContext) -> Self {
         let gl = &ctx.gl;
-        let shader = MyShader::new_from_source(
+        let lighting_shader = MyShader::new_from_source(
             gl,
             // embedded shader
             include_str!("./shaders/1.1.colors.vs"),
@@ -83,7 +85,14 @@ impl Application for App {
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
-        // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+        let lighting_cube_shader = MyShader::new_from_source(
+            gl,
+            // embedded shader
+            include_str!("./shaders/1.1.light_cube.vs"),
+            include_str!("./shaders/1.1.light_cube.fs"),
+            Some(ctx.suggested_shader_version),
+        )
+        .expect("Failed to create program");
         let yaw = -90.0f32;
         let last_x = ctx.width as f64 * ctx.scale_factor / 2.0;
         let last_y = ctx.height as f64 * ctx.scale_factor / 2.0;
@@ -91,9 +100,11 @@ impl Application for App {
         let pitch = 0.0f32;
         let camera = crate::camera::Camera::new(camera_pos, CAMERA_UP, yaw, pitch);
         Self {
-            shader,
-            vao: None,
+            cube_vao: None,
+            light_vao: None,
             vbo: None,
+            lighting_shader,
+            lighting_cube_shader,
             first_mouse: false,
             last_x,
             last_y,
@@ -107,33 +118,32 @@ impl Application for App {
 
             gl.enable(DEPTH_TEST);
 
-            let vao = gl
-                .create_vertex_array()
-                .expect("Cannot create vertex array");
+            // first, configure the cube's VAO (and VBO)
             let vbo = gl.create_buffer().expect("Cannot create vbo buffer");
-
-            gl.bind_vertex_array(Some(vao));
-
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
             gl.buffer_data_u8_slice(ARRAY_BUFFER, bytemuck::cast_slice(&VERTICES), STATIC_DRAW);
-
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 5 * size_of::<f32>() as i32, 0);
+            
+            let cube_vao = gl
+                .create_vertex_array()
+                .expect("Cannot create vertex array");
+            gl.bind_vertex_array(Some(cube_vao));
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
 
-            gl.vertex_attrib_pointer_f32(
-                1,
-                2,
-                FLOAT,
-                false,
-                5 * size_of::<f32>() as i32,
-                (3 * size_of::<f32>()) as i32,
-            );
-            gl.enable_vertex_attrib_array(1);
+            // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
+            let light_vao = gl
+                .create_vertex_array()
+                .expect("Cannot create vertex array");
+            gl.bind_vertex_array(Some(light_vao));
+            // we only need to bind to the VBO (to link it with glVertexAttribPointer),
+            // no need to fill it; the VBO's data already contains all we need (it's already bound,
+            // but we do it again for educational purposes)
+            gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
+            gl.enable_vertex_attrib_array(0);
 
-            gl.bind_buffer(ARRAY_BUFFER, None);
-            gl.bind_vertex_array(None);
-
-            self.vao = Some(vao);
+            self.cube_vao = Some(cube_vao);
+            self.light_vao = Some(light_vao);
             self.vbo = Some(vbo);
         }
     }
@@ -141,32 +151,46 @@ impl Application for App {
     fn update(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
-            gl.clear_color(0.2, 0.3, 0.3, 1.0);
+            gl.clear_color(0.1, 0.1, 0.1, 1.0);
             gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
-            gl.bind_vertex_array(self.vao);
-            self.shader.use_shader(gl);
+            // be sure to activate shader when setting uniforms/drawing objects
+            self.lighting_shader.use_shader(gl);
+            self.lighting_shader
+                .set_vec3(gl, "objectColor", &glm::vec3(1.0, 0.5, 0.31));
+            self.lighting_shader
+                .set_vec3(gl, "lightColor", &glm::vec3(1.0, 1.0, 1.0));
 
+            // view/projection transformations
             let projection = glm::perspective(
                 ctx.width as f32 / ctx.height as f32,
                 self.camera.zoom().to_radians(),
                 0.1,
                 100.0,
             );
-            self.shader.set_mat4(gl, "projection", &projection);
-
             let view = self.camera.view_matrix();
-            self.shader.set_mat4(gl, "view", &view);
+            self.lighting_shader.set_mat4(gl, "projection", &projection);
+            self.lighting_shader.set_mat4(gl, "view", &view);
 
+            // world transformation
             let model = glm::Mat4::identity();
+            self.lighting_shader.set_mat4(gl, "model", &model);
 
-            self.shader.set_mat4(gl, "model", &model);
-            gl.draw_arrays(
-                // mode, first, count
-                TRIANGLES, // mode
-                0,         // first
-                36,        // count
-            );
+            gl.bind_vertex_array(self.cube_vao);
+            gl.draw_arrays(TRIANGLES, 0, 36);
+
+            // draw the lamp object
+            self.lighting_cube_shader.use_shader(gl);
+            self.lighting_cube_shader
+                .set_mat4(gl, "projection", &projection);
+            self.lighting_cube_shader.set_mat4(gl, "view", &view);
+            let mut model = glm::Mat4::identity();
+            model = glm::translate(&model, &LIGHT_POS);
+            model = glm::scale(&model, &glm::vec3(0.2, 0.2, 0.2)); // a smaller cube
+            self.lighting_cube_shader.set_mat4(gl, "model", &model);
+
+            gl.bind_vertex_array(self.light_vao);
+            gl.draw_arrays(TRIANGLES, 0, 36);
         }
     }
 
@@ -210,9 +234,14 @@ impl Application for App {
     fn exit(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
         unsafe {
-            self.shader.delete(gl);
+            self.lighting_shader.delete(gl);
+            self.lighting_cube_shader.delete(gl);
 
-            if let Some(vertex_array) = self.vao {
+            if let Some(vertex_array) = self.cube_vao {
+                gl.delete_vertex_array(vertex_array);
+            }
+
+            if let Some(vertex_array) = self.light_vao {
                 gl.delete_vertex_array(vertex_array);
             }
 
