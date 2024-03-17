@@ -1,4 +1,4 @@
-use learn_opengl_rs::run_tutorial;
+use lib_learn_opengl_rs::run_tutorial;
 use std::env;
 
 fn main() {
