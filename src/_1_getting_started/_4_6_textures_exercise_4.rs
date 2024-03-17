@@ -219,7 +219,7 @@ impl Application for App {
         }
     }
 
-    fn handle_input(&mut self, _ctx: &GLContext, key: Key, is_pressed: bool) {
+    fn process_keyboard(&mut self, _ctx: &GLContext, key: Key, is_pressed: bool) {
         log::info!(
             "Key {:?} is {:?}",
             key,

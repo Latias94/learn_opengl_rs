@@ -71,7 +71,7 @@ impl Application for App {
                 }"#,
             );
             let program = create_program(
-                &gl,
+                gl,
                 vertex_shader_source,
                 fragment_shader_source,
                 shader_version,
@@ -150,8 +150,8 @@ fn create_program(
     let program = unsafe { gl.create_program().expect("Cannot create program") };
 
     let (vertex, fragment) = (
-        compile_shader(&gl, VERTEX_SHADER, &vertex_shader)?,
-        compile_shader(&gl, FRAGMENT_SHADER, &fragment_shader)?,
+        compile_shader(gl, VERTEX_SHADER, &vertex_shader)?,
+        compile_shader(gl, FRAGMENT_SHADER, &fragment_shader)?,
     );
 
     unsafe {

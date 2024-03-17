@@ -81,6 +81,7 @@ struct App {
     texture_1: Option<Texture>,
     texture_2: Option<Texture>,
     shader: MyShader,
+    #[allow(dead_code)]
     start: chrono::DateTime<Utc>,
 }
 
@@ -222,31 +223,22 @@ impl Application for App {
             self.shader.use_shader(gl);
 
             let mut view = glm::Mat4::identity();
-            let mut projection = glm::Mat4::identity();
-
-            let now = Utc::now();
-            let duration = now - self.start;
-            let second = duration.num_milliseconds() as f32 / 1000.0;
-
             view = glm::translate(&view, &glm::Vec3::new(0.0, 0.0, -3.0));
-            projection = glm::perspective(
-                45.0_f32.to_radians(),
+
+            let projection = glm::perspective(
                 ctx.width as f32 / ctx.height as f32,
+                45.0_f32.to_radians(),
                 0.1,
                 100.0,
             );
             self.shader.set_mat4(gl, "view", &view);
             self.shader.set_mat4(gl, "projection", &projection);
 
-            for i in 0..10 {
+            for (i, pos) in CUBE_POSITIONS.iter().enumerate() {
                 let mut model = glm::Mat4::identity();
-                model = glm::translate(&model, &CUBE_POSITIONS[i]);
-                let mut angle = 20.0 * i as f32;
-                if i % 3 == 0 {
-                    angle = second * 2.0;
-                }
-
-                model = glm::rotate(&model, angle, &glm::vec3(1.0, 0.3, 0.5));
+                model = glm::translate(&model, pos);
+                let angle = 20.0 * i as f32;
+                model = glm::rotate(&model, angle.to_radians(), &glm::vec3(1.0, 0.3, 0.5));
                 self.shader.set_mat4(gl, "model", &model);
                 gl.draw_arrays(
                     // mode, first, count

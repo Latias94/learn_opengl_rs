@@ -72,3 +72,12 @@ pub use _6_3_coordinate_systems_multiple::main_1_6_3;
 
 pub mod _6_4_coordinate_systems_exercise;
 pub use _6_4_coordinate_systems_exercise::main_1_6_4;
+
+pub mod _7_1_camera_circle;
+pub use _7_1_camera_circle::main_1_7_1;
+
+pub mod _7_2_camera_keyboard_dt;
+pub use _7_2_camera_keyboard_dt::main_1_7_2;
+
+pub mod _7_3_camera_mouse_zoom;
+pub use _7_3_camera_mouse_zoom::main_1_7_3;

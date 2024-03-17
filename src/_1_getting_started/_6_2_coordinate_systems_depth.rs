@@ -210,7 +210,6 @@ impl Application for App {
 
             let mut model = glm::Mat4::identity();
             let mut view = glm::Mat4::identity();
-            let mut projection = glm::Mat4::identity();
 
             let now = Utc::now();
             let duration = now - self.start;
@@ -222,9 +221,9 @@ impl Application for App {
                 &glm::vec3(0.5, 1.0, 0.0),
             );
             view = glm::translate(&view, &glm::vec3(0.0, 0.0, -3.0));
-            projection = glm::perspective(
-                45.0_f32.to_radians(),
+            let projection = glm::perspective(
                 ctx.width as f32 / ctx.height as f32,
+                45.0_f32.to_radians(),
                 0.1,
                 100.0,
             );

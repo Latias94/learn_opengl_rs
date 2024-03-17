@@ -1,14 +1,13 @@
 use crate::shader::MyShader;
-use crate::window::{run, Application, GLContext, WindowInitInfo};
-use chrono::Utc;
+use crate::window::{run, Application, GLContext, Key, WindowInitInfo};
 use glow::*;
 use image::GenericImageView;
 use nalgebra_glm as glm;
 use std::mem::size_of;
 
-pub fn main_1_6_3() {
+pub fn main_1_7_2() {
     let init_info = WindowInitInfo::builder()
-        .title("Coordinate Systems Multiple".to_string())
+        .title("Camera Keyboard Dt".to_string())
         .build();
     unsafe {
         run::<App>(init_info);
@@ -75,14 +74,16 @@ const CUBE_POSITIONS: [glm::Vec3; 10] = [
     glm::Vec3::new(-1.3, 1.0, -1.5),
 ];
 
+const CAMERA_FRONT: glm::Vec3 = glm::Vec3::new(0.0, 0.0, -1.0);
+const CAMERA_UP: glm::Vec3 = glm::Vec3::new(0.0, 1.0, 0.0);
+
 struct App {
     vao: Option<VertexArray>,
     vbo: Option<Buffer>,
     texture_1: Option<Texture>,
     texture_2: Option<Texture>,
     shader: MyShader,
-    #[allow(dead_code)]
-    start: chrono::DateTime<Utc>,
+    camera_pos: glm::Vec3,
 }
 
 impl Application for App {
@@ -102,7 +103,7 @@ impl Application for App {
             vbo: None,
             texture_1: None,
             texture_2: None,
-            start: Utc::now(),
+            camera_pos: glm::vec3(0.0, 0.0, 3.0),
         }
     }
 
@@ -222,9 +223,9 @@ impl Application for App {
             gl.bind_vertex_array(self.vao);
             self.shader.use_shader(gl);
 
-            let mut view = glm::Mat4::identity();
+            let center = self.camera_pos + CAMERA_FRONT;
+            let view = glm::look_at(&self.camera_pos, &center, &CAMERA_UP);
 
-            view = glm::translate(&view, &glm::Vec3::new(0.0, 0.0, -3.0));
             let projection = glm::perspective(
                 ctx.width as f32 / ctx.height as f32,
                 45.0_f32.to_radians(),
@@ -255,6 +256,24 @@ impl Application for App {
         unsafe {
             let gl = &ctx.gl;
             gl.viewport(0, 0, width as i32, height as i32);
+        }
+    }
+
+    fn process_keyboard(&mut self, ctx: &GLContext, key: Key, is_pressed: bool) {
+        if !is_pressed {
+            return;
+        }
+        let camera_speed = 2.5f32 * ctx.delta_time;
+        if key == Key::W {
+            self.camera_pos += CAMERA_FRONT * camera_speed;
+        } else if key == Key::S {
+            self.camera_pos -= CAMERA_FRONT * camera_speed;
+        } else if key == Key::A {
+            self.camera_pos -=
+                glm::normalize(&glm::cross(&CAMERA_FRONT, &CAMERA_UP)) * camera_speed;
+        } else if key == Key::D {
+            self.camera_pos +=
+                glm::normalize(&glm::cross(&CAMERA_FRONT, &CAMERA_UP)) * camera_speed;
         }
     }
 

@@ -9,10 +9,12 @@ pub struct MyShader {
 pub enum ShaderType {
     Vertex,
     Fragment,
+    #[allow(dead_code)]
     Compute,
 }
 
 impl MyShader {
+    #[allow(dead_code)]
     pub fn new<P: AsRef<Path>>(
         gl: &Context,
         vertex_path: P,
@@ -26,6 +28,7 @@ impl MyShader {
 
         Self::new_from_source(gl, &vertex_shader, &fragment_shader, shader_version)
     }
+
     pub fn new_from_source(
         gl: &Context,
         vertex_shader: &str,
@@ -43,8 +46,8 @@ impl MyShader {
         let program = unsafe { gl.create_program().expect("Cannot create program") };
 
         let (vertex, fragment) = (
-            Self::compile_shader(&gl, VERTEX_SHADER, &vertex_shader)?,
-            Self::compile_shader(&gl, FRAGMENT_SHADER, &fragment_shader)?,
+            Self::compile_shader(gl, VERTEX_SHADER, &vertex_shader)?,
+            Self::compile_shader(gl, FRAGMENT_SHADER, &fragment_shader)?,
         );
 
         unsafe {
@@ -73,6 +76,7 @@ impl MyShader {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_bool(&self, gl: &Context, name: &str, value: bool) {
         unsafe {
             let location = gl.get_uniform_location(self.program, name).unwrap();
