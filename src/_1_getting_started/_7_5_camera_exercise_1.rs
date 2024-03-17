@@ -5,10 +5,10 @@ use image::GenericImageView;
 use nalgebra_glm as glm;
 use std::mem::size_of;
 
-pub fn main_1_7_4() {
+pub fn main_1_7_5() {
     // See src/camera.rs for the camera implementation
     let init_info = WindowInitInfo::builder()
-        .title("Camera Class".to_string())
+        .title("Camera Exercise 1".to_string())
         .build();
     unsafe {
         run::<App>(init_info);
@@ -275,6 +275,11 @@ impl Application for App {
             return;
         }
         self.camera.process_keyboard_with_key(key, ctx.delta_time);
+
+        // make sure the user stays at the ground level
+        let mut pos = self.camera.position();
+        pos.y = 0.0;
+        self.camera.set_position(pos);
     }
 
     fn process_mouse(&mut self, _ctx: &GLContext, event: MouseEvent) {

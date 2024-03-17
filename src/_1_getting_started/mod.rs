@@ -84,3 +84,9 @@ pub use _7_3_camera_mouse_zoom::main_1_7_3;
 
 pub mod _7_4_camera_class;
 pub use _7_4_camera_class::main_1_7_4;
+
+pub mod _7_5_camera_exercise_1;
+pub use _7_5_camera_exercise_1::main_1_7_5;
+
+pub mod _7_6_camera_exercise_2;
+pub use _7_6_camera_exercise_2::main_1_7_6;

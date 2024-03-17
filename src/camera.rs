@@ -82,22 +82,6 @@ impl Camera {
         Camera::new(position, up, yaw, pitch)
     }
 
-    pub fn get_view_matrix(&self) -> glm::Mat4 {
-        glm::look_at(&self.position, &(self.position + self.front), &self.up)
-    }
-
-    pub fn set_speed(&mut self, speed: f32) {
-        self.movement_speed = speed;
-    }
-
-    pub fn set_sensitivity(&mut self, sensitivity: f32) {
-        self.mouse_sensitivity = sensitivity;
-    }
-
-    pub fn set_zoom(&mut self, zoom: f32) {
-        self.zoom = zoom;
-    }
-
     /// processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
     pub fn process_keyboard(&mut self, direction: CameraMovement, delta_time: f32) {
         let velocity = self.movement_speed * delta_time;
@@ -179,5 +163,44 @@ impl Camera {
 
     pub fn zoom(&self) -> f32 {
         self.zoom
+    }
+
+    pub fn position(&self) -> glm::Vec3 {
+        self.position
+    }
+
+    pub fn view_matrix(&self) -> glm::Mat4 {
+        glm::look_at(&self.position, &(self.position + self.front), &self.up)
+    }
+
+    pub fn set_speed(&mut self, speed: f32) {
+        self.movement_speed = speed;
+    }
+
+    pub fn set_sensitivity(&mut self, sensitivity: f32) {
+        self.mouse_sensitivity = sensitivity;
+    }
+
+    pub fn set_zoom(&mut self, zoom: f32) {
+        self.zoom = zoom;
+    }
+
+    pub fn set_position(&mut self, position: glm::Vec3) {
+        self.position = position;
+    }
+
+    pub fn set_front(&mut self, front: glm::Vec3) {
+        self.front = front;
+        self.update_camera_vectors();
+    }
+
+    pub fn set_yaw(&mut self, yaw: f32) {
+        self.yaw = yaw;
+        self.update_camera_vectors();
+    }
+
+    pub fn set_pitch(&mut self, pitch: f32) {
+        self.pitch = pitch;
+        self.update_camera_vectors();
     }
 }

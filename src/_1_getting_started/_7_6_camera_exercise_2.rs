@@ -5,10 +5,9 @@ use image::GenericImageView;
 use nalgebra_glm as glm;
 use std::mem::size_of;
 
-pub fn main_1_7_4() {
-    // See src/camera.rs for the camera implementation
+pub fn main_1_7_6() {
     let init_info = WindowInitInfo::builder()
-        .title("Camera Class".to_string())
+        .title("Camera Exercise 2".to_string())
         .build();
     unsafe {
         run::<App>(init_info);
@@ -83,10 +82,14 @@ struct App {
     texture_1: Option<Texture>,
     texture_2: Option<Texture>,
     shader: MyShader,
+    camera_pos: glm::Vec3,
+    camera_front: glm::Vec3,
     first_mouse: bool,
+    yaw: f32,
+    pitch: f32,
     last_x: f64,
     last_y: f64,
-    camera: crate::camera::Camera,
+    fov: f32,
 }
 
 impl Application for App {
@@ -104,19 +107,21 @@ impl Application for App {
         let yaw = -90.0f32;
         let last_x = ctx.width as f64 * ctx.scale_factor / 2.0;
         let last_y = ctx.height as f64 * ctx.scale_factor / 2.0;
-        let camera_pos = glm::vec3(0.0, 0.0, 3.0);
-        let pitch = 0.0f32;
-        let camera = crate::camera::Camera::new(camera_pos, CAMERA_UP, yaw, pitch);
+        let fov = 45.0f32;
         Self {
             shader,
             vao: None,
             vbo: None,
             texture_1: None,
             texture_2: None,
+            camera_pos: glm::vec3(0.0, 0.0, 3.0),
+            camera_front: glm::vec3(0.0, 0.0, -1.0),
             first_mouse: false,
+            yaw,
+            pitch: 0.0,
             last_x,
             last_y,
-            camera,
+            fov,
         }
     }
 
@@ -236,16 +241,18 @@ impl Application for App {
             gl.bind_vertex_array(self.vao);
             self.shader.use_shader(gl);
 
+            let center = self.camera_pos + self.camera_front;
+            // let view = glm::look_at(&self.camera_pos, &center, &CAMERA_UP);
+            let view = calculate_look_at_matrix(&self.camera_pos, &center, &CAMERA_UP);
+
             let projection = glm::perspective(
                 ctx.width as f32 / ctx.height as f32,
-                self.camera.zoom().to_radians(),
+                self.fov.to_radians(),
                 0.1,
                 100.0,
             );
-            self.shader.set_mat4(gl, "projection", &projection);
-
-            let view = self.camera.view_matrix();
             self.shader.set_mat4(gl, "view", &view);
+            self.shader.set_mat4(gl, "projection", &projection);
 
             for (i, pos) in CUBE_POSITIONS.iter().enumerate() {
                 let mut model = glm::Mat4::identity();
@@ -274,7 +281,18 @@ impl Application for App {
         if !is_pressed {
             return;
         }
-        self.camera.process_keyboard_with_key(key, ctx.delta_time);
+        let camera_speed = 2.5f32 * ctx.delta_time;
+        if key == Key::W {
+            self.camera_pos += self.camera_front * camera_speed;
+        } else if key == Key::S {
+            self.camera_pos -= self.camera_front * camera_speed;
+        } else if key == Key::A {
+            self.camera_pos -=
+                glm::normalize(&glm::cross(&self.camera_front, &CAMERA_UP)) * camera_speed;
+        } else if key == Key::D {
+            self.camera_pos +=
+                glm::normalize(&glm::cross(&self.camera_front, &CAMERA_UP)) * camera_speed;
+        }
     }
 
     fn process_mouse(&mut self, _ctx: &GLContext, event: MouseEvent) {
@@ -291,11 +309,37 @@ impl Application for App {
                 self.last_x = x;
                 self.last_y = y;
 
-                self.camera
-                    .process_mouse_movement(x_offset as f32, y_offset as f32, true);
+                let sensitivity = 0.1; // change this value to your liking
+                let x_offset = x_offset as f32 * sensitivity;
+                let y_offset = y_offset as f32 * sensitivity;
+
+                self.yaw += x_offset;
+                self.pitch += y_offset;
+
+                // make sure that when pitch is out of bounds, screen doesn't get flipped
+                if self.pitch > 89.0 {
+                    self.pitch = 89.0;
+                }
+                if self.pitch < -89.0 {
+                    self.pitch = -89.0;
+                }
+
+                let front = glm::vec3(
+                    self.yaw.to_radians().cos() * self.pitch.to_radians().cos(),
+                    self.pitch.to_radians().sin(),
+                    self.yaw.to_radians().sin() * self.pitch.to_radians().cos(),
+                );
+                self.camera_front = glm::normalize(&front);
             }
             MouseEvent::Wheel { y_offset } => {
-                self.camera.process_mouse_scroll(y_offset);
+                self.fov -= y_offset;
+
+                if self.fov <= 1.0 {
+                    self.fov = 1.0;
+                }
+                if self.fov >= 45.0 {
+                    self.fov = 45.0;
+                }
             }
         }
     }
@@ -322,4 +366,26 @@ impl Application for App {
             }
         }
     }
+}
+
+fn calculate_look_at_matrix(position: &glm::Vec3, target: &glm::Vec3, up: &glm::Vec3) -> glm::Mat4 {
+    let zaxis = glm::normalize(&(position - target));
+    let up = glm::normalize(up);
+    let xaxis = glm::normalize(&glm::cross(&up, &zaxis));
+    let yaxis = glm::cross(&zaxis, &xaxis);
+    #[rustfmt::skip]
+    let translation = glm::Mat4::new(
+        1.0, 0.0, 0.0, -position.x,
+        0.0, 1.0, 0.0, -position.y,
+        0.0, 0.0, 1.0, -position.z,
+        0.0, 0.0, 0.0, 1.0
+    );
+    #[rustfmt::skip]
+    let rotation= glm::Mat4::new(
+          xaxis.x, yaxis.x, zaxis.x, 0.0,
+          xaxis.y, yaxis.y, zaxis.y, 0.0,
+          xaxis.z, yaxis.z, zaxis.z, 0.0,
+          0.0, 0.0, 0.0, 1.0
+    );
+    rotation * translation
 }
