@@ -60,3 +60,15 @@ pub use _5_2_transformations_exercise_1::main_1_5_2;
 
 pub mod _5_3_transformations_exercise_2;
 pub use _5_3_transformations_exercise_2::main_1_5_3;
+
+pub mod _6_1_coordinate_systems;
+pub use _6_1_coordinate_systems::main_1_6_1;
+
+pub mod _6_2_coordinate_systems_depth;
+pub use _6_2_coordinate_systems_depth::main_1_6_2;
+
+pub mod _6_3_coordinate_systems_multiple;
+pub use _6_3_coordinate_systems_multiple::main_1_6_3;
+
+pub mod _6_4_coordinate_systems_exercise;
+pub use _6_4_coordinate_systems_exercise::main_1_6_4;

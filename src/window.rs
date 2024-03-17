@@ -26,6 +26,8 @@ pub struct WindowInitInfo {
 pub struct GLContext {
     pub gl: glow::Context,
     pub suggested_shader_version: &'static str,
+    pub width: u32,
+    pub height: u32,
 }
 
 pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
@@ -136,6 +138,8 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
         let ctx = GLContext {
             gl,
             suggested_shader_version: shader_version,
+            width,
+            height,
         };
 
         let mut app = App::new(&ctx);
@@ -174,11 +178,12 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
                         }
                         WindowEvent::KeyboardInput { event, .. } => {
                             let key = map_winit_key(event.logical_key);
-                            app.handle_input(
-                                &ctx,
-                                key,
-                                event.state == winit::event::ElementState::Pressed,
-                            );
+                            let is_pressed = event.state == winit::event::ElementState::Pressed;
+                            app.handle_input(&ctx, key, is_pressed);
+                            if key == Key::Escape && is_pressed {
+                                elwt.exit();
+                                app.exit(&ctx);
+                            }
                         }
                         _ => (),
                     }

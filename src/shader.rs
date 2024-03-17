@@ -94,6 +94,13 @@ impl MyShader {
         }
     }
 
+    pub fn set_mat4(&self, gl: &Context, name: &str, value: &nalgebra_glm::Mat4) {
+        unsafe {
+            let location = gl.get_uniform_location(self.program, name).unwrap();
+            gl.uniform_matrix_4_f32_slice(Some(&location), false, value.as_slice());
+        }
+    }
+
     pub fn compile_shader(
         gl: &Context,
         shader_type: u32,
