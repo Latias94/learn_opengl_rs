@@ -11,10 +11,32 @@ pub trait Application {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum MouseButtonState {
+    Pressed,
+    Released,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum MouseButtonType {
+    Left,
+    Right,
+    Middle,
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum MouseEvent {
-    Move { x: f64, y: f64 },
-    Wheel { y_offset: f32 },
-    // MouseClick { button: MouseButton, state: ButtonState },
+    Move {
+        x: f64,
+        y: f64,
+    },
+    Wheel {
+        y_offset: f32,
+    },
+    Input {
+        button: MouseButtonType,
+        state: MouseButtonState,
+    },
 }
 
 #[derive(TypedBuilder, Debug, Clone, PartialEq, Eq, Hash)]
@@ -226,6 +248,29 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
                                 winit::event::MouseScrollDelta::PixelDelta(_) => 0.0,
                             };
                             app.process_mouse(&ctx, MouseEvent::Wheel { y_offset });
+                        }
+                        WindowEvent::MouseInput { state, button, .. } => {
+                            app.process_mouse(
+                                &ctx,
+                                MouseEvent::Input {
+                                    button: match button {
+                                        winit::event::MouseButton::Left => MouseButtonType::Left,
+                                        winit::event::MouseButton::Right => MouseButtonType::Right,
+                                        winit::event::MouseButton::Middle => {
+                                            MouseButtonType::Middle
+                                        }
+                                        _ => MouseButtonType::Unknown,
+                                    },
+                                    state: match state {
+                                        winit::event::ElementState::Pressed => {
+                                            MouseButtonState::Pressed
+                                        }
+                                        winit::event::ElementState::Released => {
+                                            MouseButtonState::Released
+                                        }
+                                    },
+                                },
+                            );
                         }
                         _ => (),
                     }

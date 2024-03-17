@@ -1,4 +1,4 @@
-use crate::window::Key;
+use crate::window::{Key, MouseButtonState, MouseButtonType};
 use nalgebra_glm as glm;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -24,6 +24,7 @@ pub struct Camera {
     pub movement_speed: f32,
     pub mouse_sensitivity: f32,
     pub zoom: f32,
+    pub is_left_mouse_button_pressed: bool,
 }
 
 // Default camera values
@@ -46,6 +47,7 @@ impl Default for Camera {
             movement_speed: SPEED,
             mouse_sensitivity: SENSITIVITY,
             zoom: ZOOM,
+            is_left_mouse_button_pressed: false,
         };
         camera.update_camera_vectors();
         camera
@@ -103,6 +105,9 @@ impl Camera {
 
     /// processes input received from a mouse input system. Expects the offset value in both the x and y direction.
     pub fn process_mouse_movement(&mut self, x_offset: f32, y_offset: f32, constrain_pitch: bool) {
+        if !self.is_left_mouse_button_pressed {
+            return;
+        }
         let x_offset = x_offset * self.mouse_sensitivity;
         let y_offset = y_offset * self.mouse_sensitivity;
 
@@ -119,6 +124,19 @@ impl Camera {
         }
 
         self.update_camera_vectors();
+    }
+
+    pub fn process_mouse_input(
+        &mut self,
+        mouse_button_type: MouseButtonType,
+        mouse_button_state: MouseButtonState,
+    ) {
+        match mouse_button_type {
+            MouseButtonType::Left => {
+                self.is_left_mouse_button_pressed = mouse_button_state == MouseButtonState::Pressed;
+            }
+            _ => {}
+        }
     }
 
     /// processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis

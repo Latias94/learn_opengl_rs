@@ -341,6 +341,7 @@ impl Application for App {
                     self.fov = 45.0;
                 }
             }
+            _ => {}
         }
     }
 

@@ -302,6 +302,7 @@ impl Application for App {
             MouseEvent::Wheel { y_offset } => {
                 self.camera.process_mouse_scroll(y_offset);
             }
+            _ => {}
         }
     }
 

@@ -79,35 +79,45 @@ impl MyShader {
     #[allow(dead_code)]
     pub fn set_bool(&self, gl: &Context, name: &str, value: bool) {
         unsafe {
-            let location = gl.get_uniform_location(self.program, name).unwrap();
+            let location = gl
+                .get_uniform_location(self.program, name)
+                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
             gl.uniform_1_i32(Some(&location), value as i32);
         }
     }
 
     pub fn set_int(&self, gl: &Context, name: &str, value: i32) {
         unsafe {
-            let location = gl.get_uniform_location(self.program, name).unwrap();
+            let location = gl
+                .get_uniform_location(self.program, name)
+                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
             gl.uniform_1_i32(Some(&location), value);
         }
     }
 
     pub fn set_float(&self, gl: &Context, name: &str, value: f32) {
         unsafe {
-            let location = gl.get_uniform_location(self.program, name).unwrap();
+            let location = gl
+                .get_uniform_location(self.program, name)
+                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
             gl.uniform_1_f32(Some(&location), value);
         }
     }
 
     pub fn set_mat4(&self, gl: &Context, name: &str, value: &nalgebra_glm::Mat4) {
         unsafe {
-            let location = gl.get_uniform_location(self.program, name).unwrap();
+            let location = gl
+                .get_uniform_location(self.program, name)
+                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
             gl.uniform_matrix_4_f32_slice(Some(&location), false, value.as_slice());
         }
     }
-    
+
     pub fn set_vec3(&self, gl: &Context, name: &str, value: &nalgebra_glm::Vec3) {
         unsafe {
-            let location = gl.get_uniform_location(self.program, name).unwrap();
+            let location = gl
+                .get_uniform_location(self.program, name)
+                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
             gl.uniform_3_f32(Some(&location), value.x, value.y, value.z);
         }
     }

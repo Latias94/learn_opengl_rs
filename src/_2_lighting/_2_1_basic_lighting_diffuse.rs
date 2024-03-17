@@ -4,9 +4,9 @@ use glow::*;
 use nalgebra_glm as glm;
 use std::mem::size_of;
 
-pub fn main_2_1_1() {
+pub fn main_2_2_1() {
     let init_info = WindowInitInfo::builder()
-        .title("Colors".to_string())
+        .title("Basic Lighting Diffuse".to_string())
         .build();
     unsafe {
         run::<App>(init_info);
@@ -14,49 +14,49 @@ pub fn main_2_1_1() {
 }
 
 #[rustfmt::skip]
-const VERTICES: [f32; 108] = [
-    // pos           
-    -0.5, -0.5, -0.5,
-    0.5, -0.5, -0.5, 
-    0.5,  0.5, -0.5, 
-    0.5,  0.5, -0.5, 
-    -0.5,  0.5, -0.5,  
-    -0.5, -0.5, -0.5,
+const VERTICES: [f32; 216] = [
+    // pos           normal
+    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+    0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+    -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
 
-    -0.5, -0.5,  0.5,
-    0.5, -0.5,  0.5, 
-    0.5,  0.5,  0.5, 
-    0.5,  0.5,  0.5, 
-    -0.5,  0.5,  0.5,  
-    -0.5, -0.5,  0.5,
+    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
 
-    -0.5,  0.5,  0.5, 
-    -0.5,  0.5, -0.5, 
-    -0.5, -0.5, -0.5,  
-    -0.5, -0.5, -0.5,  
-    -0.5, -0.5,  0.5,
-    -0.5,  0.5,  0.5, 
+    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+    -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
+    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+    -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
+    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
 
-    0.5,  0.5,  0.5, 
-    0.5,  0.5, -0.5, 
-    0.5, -0.5, -0.5,  
-    0.5, -0.5, -0.5,  
-    0.5, -0.5,  0.5,
-    0.5,  0.5,  0.5, 
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+    0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
+    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+    0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
 
-    -0.5, -0.5, -0.5,  
-    0.5, -0.5, -0.5, 
-    0.5, -0.5,  0.5, 
-    0.5, -0.5,  0.5, 
-    -0.5, -0.5,  0.5,
-    -0.5, -0.5, -0.5,  
+    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+    0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+    -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
 
-    -0.5,  0.5, -0.5,  
-    0.5,  0.5, -0.5, 
-    0.5,  0.5,  0.5, 
-    0.5,  0.5,  0.5, 
-    -0.5,  0.5,  0.5,
-    -0.5,  0.5, -0.5,
+    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+    -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
 ];
 
 const CAMERA_UP: glm::Vec3 = glm::Vec3::new(0.0, 1.0, 0.0);
@@ -80,8 +80,8 @@ impl Application for App {
         let lighting_shader = MyShader::new_from_source(
             gl,
             // embedded shader
-            include_str!("./shaders/1.1.colors.vs"),
-            include_str!("./shaders/1.1.colors.fs"),
+            include_str!("./shaders/2.1.basic_lighting.vs"),
+            include_str!("./shaders/2.1.basic_lighting.fs"),
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
@@ -96,7 +96,7 @@ impl Application for App {
         let yaw = -90.0f32;
         let last_x = ctx.width as f64 * ctx.scale_factor / 2.0;
         let last_y = ctx.height as f64 * ctx.scale_factor / 2.0;
-        let camera_pos = glm::vec3(0.0, 0.0, 3.0);
+        let camera_pos = glm::vec3(0.0, 0.0, 4.0);
         let pitch = 0.0f32;
         let camera = crate::camera::Camera::new(camera_pos, CAMERA_UP, yaw, pitch);
         Self {
@@ -127,20 +127,32 @@ impl Application for App {
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
             gl.bind_vertex_array(Some(cube_vao));
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
+            // position attribute
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 6 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
+            // normal attribute
+            gl.vertex_attrib_pointer_f32(
+                1,
+                3,
+                FLOAT,
+                false,
+                6 * size_of::<f32>() as i32,
+                3 * size_of::<f32>() as i32,
+            );
+            gl.enable_vertex_attrib_array(1);
 
             // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
             let light_vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
             gl.bind_vertex_array(Some(light_vao));
-            // we only need to bind to the VBO (to link it with glVertexAttribPointer),
-            // no need to fill it; the VBO's data already contains all we need (it's already bound,
-            // but we do it again for educational purposes)
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
+            // note that we update the lamp's position attribute's stride to reflect the updated buffer data
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 6 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
+
+            self.lighting_shader.use_shader(gl);
+            self.lighting_shader.set_vec3(gl, "lightPos", &LIGHT_POS);
 
             self.cube_vao = Some(cube_vao);
             self.light_vao = Some(light_vao);
