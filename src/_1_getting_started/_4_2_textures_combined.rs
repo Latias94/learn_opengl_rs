@@ -209,7 +209,7 @@ impl Application for App {
     }
 
     fn resize(&mut self, ctx: &GLContext, width: u32, height: u32) {
-        log::info!("Resizing to {}x{}", width, height);
+        log::info!("Resizingto {}x{}", width, height);
         unsafe {
             let gl = &ctx.gl;
             gl.viewport(0, 0, width as i32, height as i32);

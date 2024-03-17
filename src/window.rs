@@ -199,6 +199,7 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
                             {
                                 last_width = physical_size.width;
                                 last_height = physical_size.height;
+                                log::info!("Resizing to {}x{}", width, height);
                                 app.resize(&ctx, physical_size.width, physical_size.height);
                                 window.request_redraw();
                             }
