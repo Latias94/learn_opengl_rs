@@ -1,18 +1,44 @@
 # Learn OpenGL in Rust
 
-Install [Just](https://github.com/casey/just?tab=readme-ov-file#installation), [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/).
+Following [learnopengl.com](https://learnopengl.com/) with Rust, compatible with both desktop and WebGL via
+WebAssembly (wasm).
+
+## Build
+
+### Prerequisites
+
+Install [Just](https://github.com/casey/just?tab=readme-ov-file#installation), a handy command runner. Or you can run
+command found in `justfile` manually.
+
+### Desktop
 
 ```shell
-rustup target add wasm32-unknown-unknown
-cargo install wasm-bindgen-cli
+just run 1_2_1 # Run tutorial 1_2_1
 ```
 
-```shell
-just run 1_2_1 # Run tutorial 1_2_1 with glutin-winit
-just web # Build wasm with wasm-pack and run, generate smaller wasm file
-just web-bindgen # Run wasm, then you can open http://127.0.0.1:8000/?tutorial=1_2_1
-```
+### WebGL
 
-## Todos
+#### wasm-pack (Recommended)
 
-- [ ] implement update in wasm
+`wasm-pack` has bundled [WebAssembly/binaryen](https://github.com/WebAssembly/binaryen) for you, which can optimize wasm
+file.
+
+1. Install [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/).
+2. To build and run with wasm-pack (generates an optimized wasm file), then visit http://127.0.0.1:8000/?tutorial=1_2_1.
+    ```shell
+     just web
+    ```
+
+#### wasm-bindgen
+
+Alternatively, use `wasm-bindgen` directly for a less optimized build.
+
+1. Install `wasm32-unknown-unknown` target and `wasm-bindgen-cli`:
+    ```shell
+    rustup target add wasm32-unknown-unknown
+    cargo install wasm-bindgen-cli
+    ```
+2. To build and run with wasm-bindgen, then visit http://127.0.0.1:8000/?tutorial=1_2_1.
+    ```shell
+    just web-bindgen
+    ```
