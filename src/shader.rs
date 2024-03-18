@@ -43,7 +43,11 @@ impl MyShader {
             ShaderType::Fragment,
         );
 
-        let program = unsafe { gl.create_program().expect("Cannot create program") };
+        #[cfg(target_arch = "wasm32")]
+        {
+            log::info!("vs: \n{}\n\nfs: \n{}", vertex_shader, fragment_shader);
+        }
+        let program = unsafe { gl.create_program().expect("Failed to create program") };
 
         let (vertex, fragment) = (
             Self::compile_shader(gl, VERTEX_SHADER, &vertex_shader)?,

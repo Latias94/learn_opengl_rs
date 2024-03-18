@@ -181,7 +181,7 @@ impl Application for App {
         }
     }
 
-    fn update(&mut self, ctx: &GLContext) {
+    fn render(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
             gl.clear_color(0.2, 0.3, 0.3, 1.0);

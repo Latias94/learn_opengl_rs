@@ -1,8 +1,9 @@
 use crate::shader::MyShader;
-use crate::window::{run, Application, GLContext, Key, MouseEvent, WindowInitInfo};
+use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use nalgebra_glm as glm;
 use std::mem::size_of;
+use winit_input_helper::WinitInputHelper;
 
 pub fn main_2_2_1() {
     let init_info = WindowInitInfo::builder()
@@ -68,9 +69,6 @@ struct App {
     vbo: Option<Buffer>,
     lighting_shader: MyShader,
     lighting_cube_shader: MyShader,
-    first_mouse: bool,
-    last_x: f64,
-    last_y: f64,
     camera: crate::camera::Camera,
 }
 
@@ -94,8 +92,6 @@ impl Application for App {
         )
         .expect("Failed to create program");
         let yaw = -90.0f32;
-        let last_x = ctx.width as f64 * ctx.scale_factor / 2.0;
-        let last_y = ctx.height as f64 * ctx.scale_factor / 2.0;
         let camera_pos = glm::vec3(0.0, 0.0, 4.0);
         let pitch = 0.0f32;
         let camera = crate::camera::Camera::new(camera_pos, CAMERA_UP, yaw, pitch);
@@ -105,9 +101,6 @@ impl Application for App {
             vbo: None,
             lighting_shader,
             lighting_cube_shader,
-            first_mouse: false,
-            last_x,
-            last_y,
             camera,
         }
     }
@@ -160,7 +153,7 @@ impl Application for App {
         }
     }
 
-    fn update(&mut self, ctx: &GLContext) {
+    fn render(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
             gl.clear_color(0.1, 0.1, 0.1, 1.0);
@@ -213,37 +206,9 @@ impl Application for App {
         }
     }
 
-    fn process_keyboard(&mut self, ctx: &GLContext, key: Key, is_pressed: bool) {
-        if !is_pressed {
-            return;
-        }
-        self.camera.process_keyboard_with_key(key, ctx.delta_time);
-    }
-
-    fn process_mouse(&mut self, _ctx: &GLContext, event: MouseEvent) {
-        // log::info!("Mouse event: {:?}", event);
-        match event {
-            MouseEvent::Move { x, y } => {
-                if self.first_mouse {
-                    self.last_x = x;
-                    self.last_y = y;
-                    self.first_mouse = false;
-                }
-                let x_offset = x - self.last_x;
-                let y_offset = self.last_y - y; // reversed since y-coordinates go from bottom to top
-                self.last_x = x;
-                self.last_y = y;
-
-                self.camera
-                    .process_mouse_movement(x_offset as f32, y_offset as f32, true);
-            }
-            MouseEvent::Wheel { y_offset } => {
-                self.camera.process_mouse_scroll(y_offset);
-            }
-            MouseEvent::Input { state, button, .. } => {
-                self.camera.process_mouse_input(button, state);
-            }
-        }
+    fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
+        self.camera.process_keyboard_with_input(input);
+        self.camera.process_mouse_with_input(input, true);
     }
 
     fn exit(&mut self, ctx: &GLContext) {

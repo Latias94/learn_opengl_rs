@@ -25,7 +25,7 @@ impl Application for App {
         }
     }
 
-    fn update(&mut self, ctx: &GLContext) {
+    fn render(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
             gl.clear(COLOR_BUFFER_BIT);

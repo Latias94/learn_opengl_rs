@@ -1,9 +1,10 @@
 use crate::shader::MyShader;
-use crate::window::{run, Application, GLContext, Key, MouseEvent, WindowInitInfo};
+use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use image::GenericImageView;
 use nalgebra_glm as glm;
 use std::mem::size_of;
+use winit_input_helper::WinitInputHelper;
 
 pub fn main_1_7_4() {
     // See src/camera.rs for the camera implementation
@@ -83,9 +84,6 @@ struct App {
     texture_1: Option<Texture>,
     texture_2: Option<Texture>,
     shader: MyShader,
-    first_mouse: bool,
-    last_x: f64,
-    last_y: f64,
     camera: crate::camera::Camera,
 }
 
@@ -102,8 +100,6 @@ impl Application for App {
         .expect("Failed to create program");
         // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
         let yaw = -90.0f32;
-        let last_x = ctx.width as f64 * ctx.scale_factor / 2.0;
-        let last_y = ctx.height as f64 * ctx.scale_factor / 2.0;
         let camera_pos = glm::vec3(0.0, 0.0, 3.0);
         let pitch = 0.0f32;
         let camera = crate::camera::Camera::new(camera_pos, CAMERA_UP, yaw, pitch);
@@ -113,9 +109,6 @@ impl Application for App {
             vbo: None,
             texture_1: None,
             texture_2: None,
-            first_mouse: false,
-            last_x,
-            last_y,
             camera,
         }
     }
@@ -221,7 +214,7 @@ impl Application for App {
         }
     }
 
-    fn update(&mut self, ctx: &GLContext) {
+    fn render(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
             gl.clear_color(0.2, 0.3, 0.3, 1.0);
@@ -253,12 +246,7 @@ impl Application for App {
                 let angle = 20.0 * i as f32;
                 model = glm::rotate(&model, angle.to_radians(), &glm::vec3(1.0, 0.3, 0.5));
                 self.shader.set_mat4(gl, "model", &model);
-                gl.draw_arrays(
-                    // mode, first, count
-                    TRIANGLES, // mode
-                    0,         // first
-                    36,        // count
-                );
+                gl.draw_arrays(TRIANGLES, 0, 36);
             }
         }
     }
@@ -270,37 +258,9 @@ impl Application for App {
         }
     }
 
-    fn process_keyboard(&mut self, ctx: &GLContext, key: Key, is_pressed: bool) {
-        if !is_pressed {
-            return;
-        }
-        self.camera.process_keyboard_with_key(key, ctx.delta_time);
-    }
-
-    fn process_mouse(&mut self, _ctx: &GLContext, event: MouseEvent) {
-        // log::info!("Mouse event: {:?}", event);
-        match event {
-            MouseEvent::Move { x, y } => {
-                if self.first_mouse {
-                    self.last_x = x;
-                    self.last_y = y;
-                    self.first_mouse = false;
-                }
-                let x_offset = x - self.last_x;
-                let y_offset = self.last_y - y; // reversed since y-coordinates go from bottom to top
-                self.last_x = x;
-                self.last_y = y;
-
-                self.camera
-                    .process_mouse_movement(x_offset as f32, y_offset as f32, true);
-            }
-            MouseEvent::Wheel { y_offset } => {
-                self.camera.process_mouse_scroll(y_offset);
-            }
-            MouseEvent::Input { state, button, .. } => {
-                self.camera.process_mouse_input(button, state);
-            }
-        }
+    fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
+        self.camera.process_keyboard_with_input(input);
+        self.camera.process_mouse_with_input(input, true);
     }
 
     fn exit(&mut self, ctx: &GLContext) {

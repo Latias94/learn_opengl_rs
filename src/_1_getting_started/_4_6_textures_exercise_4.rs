@@ -1,8 +1,11 @@
 use crate::shader::MyShader;
-use crate::window::{run, Application, GLContext, Key, WindowInitInfo};
+use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use image::GenericImageView;
 use std::mem::size_of;
+use std::time::Duration;
+use winit::keyboard::KeyCode;
+use winit_input_helper::WinitInputHelper;
 
 pub fn main_1_4_6() {
     let init_info = WindowInitInfo::builder()
@@ -183,7 +186,7 @@ impl Application for App {
         }
     }
 
-    fn update(&mut self, ctx: &GLContext) {
+    fn render(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
             gl.clear_color(0.2, 0.3, 0.3, 1.0);
@@ -217,27 +220,20 @@ impl Application for App {
             gl.viewport(0, 0, width as i32, height as i32);
         }
     }
-
-    fn process_keyboard(&mut self, _ctx: &GLContext, key: Key, is_pressed: bool) {
-        log::info!(
-            "Key {:?} is {:?}",
-            key,
-            if is_pressed { "pressed" } else { "release" }
-        );
-        let is_up = (key == Key::Up || key == Key::W) && is_pressed;
-        let is_down = (key == Key::Down || key == Key::S) && is_pressed;
-        if is_up {
-            self.mix_value += 0.05;
+    fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
+        let delta_time = input.delta_time().unwrap_or(Duration::new(0, 0));
+        let delta_time = delta_time.as_secs_f32();
+        if input.key_held(KeyCode::ArrowUp) || input.key_held(KeyCode::KeyW) {
+            self.mix_value += 0.5 * delta_time;
             if self.mix_value > 1.0 {
                 self.mix_value = 1.0;
             }
-        } else if is_down {
-            self.mix_value -= 0.05;
+        } else if input.key_held(KeyCode::ArrowDown) || input.key_held(KeyCode::KeyS) {
+            self.mix_value -= 0.5 * delta_time;
             if self.mix_value < 0.0 {
                 self.mix_value = 0.0;
             }
         }
-        log::info!("Mix value: {}", self.mix_value);
     }
 
     fn exit(&mut self, ctx: &GLContext) {

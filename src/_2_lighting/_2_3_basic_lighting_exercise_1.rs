@@ -5,9 +5,9 @@ use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub fn main_2_2_2() {
+pub fn main_2_2_3() {
     let init_info = WindowInitInfo::builder()
-        .title("Basic Lighting Specular".to_string())
+        .title("Basic Lighting Exercise 1".to_string())
         .build();
     unsafe {
         run::<App>(init_info);
@@ -61,7 +61,6 @@ const VERTICES: [f32; 216] = [
 ];
 
 const CAMERA_UP: glm::Vec3 = glm::Vec3::new(0.0, 1.0, 0.0);
-const LIGHT_POS: glm::Vec3 = glm::Vec3::new(1.2, 1.0, 2.0);
 
 struct App {
     cube_vao: Option<VertexArray>,
@@ -156,13 +155,20 @@ impl Application for App {
             gl.clear_color(0.1, 0.1, 0.1, 1.0);
             gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
-            // be sure to activate shader when setting uniforms/drawing objects
+            let mut light_pos = glm::Vec3::new(1.2, 1.0, 2.0);
+            // change the light's position values over time (can be done anywhere in the render loop actually,
+            // but try to do it at least before using the light source positions)
+            let duration = ctx.last_update_time - ctx.start;
+            let time = duration.num_milliseconds() as f32 / 1000.0;
+            light_pos.x = 1.0 + (time.sin() * 2.0);
+            light_pos.y = time.sin() / 2.0 * 1.0;
+
             self.lighting_shader.use_shader(gl);
             self.lighting_shader
                 .set_vec3(gl, "objectColor", &glm::vec3(1.0, 0.5, 0.31));
             self.lighting_shader
                 .set_vec3(gl, "lightColor", &glm::vec3(1.0, 1.0, 1.0));
-            self.lighting_shader.set_vec3(gl, "lightPos", &LIGHT_POS);
+            self.lighting_shader.set_vec3(gl, "lightPos", &light_pos);
             self.lighting_shader
                 .set_vec3(gl, "viewPos", &self.camera.position());
 
@@ -190,7 +196,7 @@ impl Application for App {
                 .set_mat4(gl, "projection", &projection);
             self.lighting_cube_shader.set_mat4(gl, "view", &view);
             let mut model = glm::Mat4::identity();
-            model = glm::translate(&model, &LIGHT_POS);
+            model = glm::translate(&model, &light_pos);
             model = glm::scale(&model, &glm::vec3(0.2, 0.2, 0.2)); // a smaller cube
             self.lighting_cube_shader.set_mat4(gl, "model", &model);
 

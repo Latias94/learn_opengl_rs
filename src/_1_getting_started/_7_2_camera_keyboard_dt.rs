@@ -1,9 +1,12 @@
 use crate::shader::MyShader;
-use crate::window::{run, Application, GLContext, Key, WindowInitInfo};
+use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use image::GenericImageView;
 use nalgebra_glm as glm;
 use std::mem::size_of;
+use std::time::Duration;
+use winit::keyboard::KeyCode;
+use winit_input_helper::WinitInputHelper;
 
 pub fn main_1_7_2() {
     let init_info = WindowInitInfo::builder()
@@ -208,7 +211,7 @@ impl Application for App {
         }
     }
 
-    fn update(&mut self, ctx: &GLContext) {
+    fn render(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
             gl.clear_color(0.2, 0.3, 0.3, 1.0);
@@ -258,19 +261,18 @@ impl Application for App {
         }
     }
 
-    fn process_keyboard(&mut self, ctx: &GLContext, key: Key, is_pressed: bool) {
-        if !is_pressed {
-            return;
-        }
-        let camera_speed = 2.5f32 * ctx.delta_time;
-        if key == Key::W {
+    fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
+        let delta_time = input.delta_time().unwrap_or(Duration::new(0, 0));
+        let delta_time = delta_time.as_secs_f32();
+        let camera_speed = 2.5f32 * delta_time;
+        if input.key_held(KeyCode::KeyW) || input.key_held(KeyCode::ArrowUp) {
             self.camera_pos += CAMERA_FRONT * camera_speed;
-        } else if key == Key::S {
+        } else if input.key_held(KeyCode::KeyS) || input.key_held(KeyCode::ArrowDown) {
             self.camera_pos -= CAMERA_FRONT * camera_speed;
-        } else if key == Key::A {
+        } else if input.key_held(KeyCode::KeyA) || input.key_held(KeyCode::ArrowLeft) {
             self.camera_pos -=
                 glm::normalize(&glm::cross(&CAMERA_FRONT, &CAMERA_UP)) * camera_speed;
-        } else if key == Key::D {
+        } else if input.key_held(KeyCode::KeyD) || input.key_held(KeyCode::ArrowRight) {
             self.camera_pos +=
                 glm::normalize(&glm::cross(&CAMERA_FRONT, &CAMERA_UP)) * camera_speed;
         }

@@ -1,9 +1,12 @@
 use crate::shader::MyShader;
-use crate::window::{run, Application, GLContext, Key, MouseEvent, WindowInitInfo};
+use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use image::GenericImageView;
 use nalgebra_glm as glm;
 use std::mem::size_of;
+use std::time::Duration;
+use winit::keyboard::KeyCode;
+use winit_input_helper::WinitInputHelper;
 
 pub fn main_1_7_3() {
     let init_info = WindowInitInfo::builder()
@@ -84,11 +87,8 @@ struct App {
     shader: MyShader,
     camera_pos: glm::Vec3,
     camera_front: glm::Vec3,
-    first_mouse: bool,
     yaw: f32,
     pitch: f32,
-    last_x: f64,
-    last_y: f64,
     fov: f32,
 }
 
@@ -105,8 +105,6 @@ impl Application for App {
         .expect("Failed to create program");
         // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
         let yaw = -90.0f32;
-        let last_x = ctx.width as f64 * ctx.scale_factor / 2.0;
-        let last_y = ctx.height as f64 * ctx.scale_factor / 2.0;
         let fov = 45.0f32;
         Self {
             shader,
@@ -116,11 +114,8 @@ impl Application for App {
             texture_2: None,
             camera_pos: glm::vec3(0.0, 0.0, 3.0),
             camera_front: glm::vec3(0.0, 0.0, -1.0),
-            first_mouse: false,
             yaw,
             pitch: 0.0,
-            last_x,
-            last_y,
             fov,
         }
     }
@@ -226,7 +221,7 @@ impl Application for App {
         }
     }
 
-    fn update(&mut self, ctx: &GLContext) {
+    fn render(&mut self, ctx: &GLContext) {
         unsafe {
             let gl = &ctx.gl;
             gl.clear_color(0.2, 0.3, 0.3, 1.0);
@@ -276,71 +271,60 @@ impl Application for App {
         }
     }
 
-    fn process_keyboard(&mut self, ctx: &GLContext, key: Key, is_pressed: bool) {
-        if !is_pressed {
-            return;
-        }
-        let camera_speed = 2.5f32 * ctx.delta_time;
-        if key == Key::W {
+    fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
+        let delta_time = input.delta_time().unwrap_or(Duration::new(0, 0));
+        let delta_time = delta_time.as_secs_f32();
+        let camera_speed = 2.5f32 * delta_time;
+        if input.key_held(KeyCode::KeyW) || input.key_held(KeyCode::ArrowUp) {
             self.camera_pos += self.camera_front * camera_speed;
-        } else if key == Key::S {
+        } else if input.key_held(KeyCode::KeyS) || input.key_held(KeyCode::ArrowDown) {
             self.camera_pos -= self.camera_front * camera_speed;
-        } else if key == Key::A {
+        } else if input.key_held(KeyCode::KeyA) || input.key_held(KeyCode::ArrowLeft) {
             self.camera_pos -=
                 glm::normalize(&glm::cross(&self.camera_front, &CAMERA_UP)) * camera_speed;
-        } else if key == Key::D {
+        } else if input.key_held(KeyCode::KeyD) || input.key_held(KeyCode::ArrowRight) {
             self.camera_pos +=
                 glm::normalize(&glm::cross(&self.camera_front, &CAMERA_UP)) * camera_speed;
         }
-    }
 
-    fn process_mouse(&mut self, _ctx: &GLContext, event: MouseEvent) {
-        // log::info!("Mouse event: {:?}", event);
-        match event {
-            MouseEvent::Move { x, y } => {
-                if self.first_mouse {
-                    self.last_x = x;
-                    self.last_y = y;
-                    self.first_mouse = false;
-                }
-                let x_offset = x - self.last_x;
-                let y_offset = self.last_y - y; // reversed since y-coordinates go from bottom to top
-                self.last_x = x;
-                self.last_y = y;
+        // mouse scroll
+        let (_x_offset, y_offset) = input.scroll_diff();
+        if y_offset != 0.0 {
+            self.fov -= y_offset;
 
-                let sensitivity = 0.1; // change this value to your liking
-                let x_offset = x_offset as f32 * sensitivity;
-                let y_offset = y_offset as f32 * sensitivity;
-
-                self.yaw += x_offset;
-                self.pitch += y_offset;
-
-                // make sure that when pitch is out of bounds, screen doesn't get flipped
-                if self.pitch > 89.0 {
-                    self.pitch = 89.0;
-                }
-                if self.pitch < -89.0 {
-                    self.pitch = -89.0;
-                }
-
-                let front = glm::vec3(
-                    self.yaw.to_radians().cos() * self.pitch.to_radians().cos(),
-                    self.pitch.to_radians().sin(),
-                    self.yaw.to_radians().sin() * self.pitch.to_radians().cos(),
-                );
-                self.camera_front = glm::normalize(&front);
+            if self.fov <= 1.0 {
+                self.fov = 1.0;
             }
-            MouseEvent::Wheel { y_offset } => {
-                self.fov -= y_offset;
-
-                if self.fov <= 1.0 {
-                    self.fov = 1.0;
-                }
-                if self.fov >= 45.0 {
-                    self.fov = 45.0;
-                }
+            if self.fov >= 45.0 {
+                self.fov = 45.0;
             }
-            _ => {}
+        }
+
+        // mouse move
+        let (x, y) = input.mouse_diff();
+        if x != 0.0 || y != 0.0 {
+            // x, y already is offset value here
+            let sensitivity = 0.1; // change this value to your liking
+            let x_offset = x * sensitivity;
+            let y_offset = y * sensitivity;
+
+            self.yaw += x_offset;
+            self.pitch += y_offset;
+
+            // make sure that when pitch is out of bounds, screen doesn't get flipped
+            if self.pitch > 89.0 {
+                self.pitch = 89.0;
+            }
+            if self.pitch < -89.0 {
+                self.pitch = -89.0;
+            }
+
+            let front = glm::vec3(
+                self.yaw.to_radians().cos() * self.pitch.to_radians().cos(),
+                self.pitch.to_radians().sin(),
+                self.yaw.to_radians().sin() * self.pitch.to_radians().cos(),
+            );
+            self.camera_front = glm::normalize(&front);
         }
     }
 

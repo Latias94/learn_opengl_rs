@@ -6,3 +6,6 @@ pub use _2_1_basic_lighting_diffuse::main_2_2_1;
 
 mod _2_2_basic_lighting_specular;
 pub use _2_2_basic_lighting_specular::main_2_2_2;
+
+mod _2_3_basic_lighting_exercise_1;
+pub use _2_3_basic_lighting_exercise_1::main_2_2_3;

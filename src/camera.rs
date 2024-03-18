@@ -1,7 +1,10 @@
-use crate::window::{Key, MouseButtonState, MouseButtonType};
 use nalgebra_glm as glm;
+use std::time::Duration;
+use winit::event::MouseButton;
+use winit::keyboard::KeyCode;
+use winit_input_helper::WinitInputHelper;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum CameraMovement {
     None,
     Forward,
@@ -24,7 +27,6 @@ pub struct Camera {
     pub movement_speed: f32,
     pub mouse_sensitivity: f32,
     pub zoom: f32,
-    pub is_left_mouse_button_pressed: bool,
 }
 
 // Default camera values
@@ -47,7 +49,6 @@ impl Default for Camera {
             movement_speed: SPEED,
             mouse_sensitivity: SENSITIVITY,
             zoom: ZOOM,
-            is_left_mouse_button_pressed: false,
         };
         camera.update_camera_vectors();
         camera
@@ -86,8 +87,25 @@ impl Camera {
         Camera::new(position, up, yaw, pitch)
     }
 
+    pub fn process_keyboard_with_input(&mut self, input: &WinitInputHelper) {
+        let direction = if input.key_held(KeyCode::KeyW) || input.key_held(KeyCode::ArrowUp) {
+            CameraMovement::Forward
+        } else if input.key_held(KeyCode::KeyS) || input.key_held(KeyCode::ArrowDown) {
+            CameraMovement::Backward
+        } else if input.key_held(KeyCode::KeyA) || input.key_held(KeyCode::ArrowLeft) {
+            CameraMovement::Left
+        } else if input.key_held(KeyCode::KeyD) || input.key_held(KeyCode::ArrowRight) {
+            CameraMovement::Right
+        } else {
+            CameraMovement::None
+        };
+        let delta_time = input.delta_time().unwrap_or(Duration::new(0, 0));
+        let delta_time = delta_time.as_secs_f32();
+        self.process_keyboard(direction, delta_time);
+    }
+
     /// processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
-    pub fn process_keyboard(&mut self, direction: CameraMovement, delta_time: f32) {
+    fn process_keyboard(&mut self, direction: CameraMovement, delta_time: f32) {
         let velocity = self.movement_speed * delta_time;
         match direction {
             CameraMovement::Forward => self.position += self.front * velocity,
@@ -98,49 +116,36 @@ impl Camera {
         }
     }
 
-    pub fn process_keyboard_with_key(&mut self, key: Key, delta_time: f32) {
-        let direction = Camera::map_key_to_movement(key);
-        self.process_keyboard(direction, delta_time);
-    }
-
     /// processes input received from a mouse input system. Expects the offset value in both the x and y direction.
-    pub fn process_mouse_movement(&mut self, x_offset: f32, y_offset: f32, constrain_pitch: bool) {
-        if !self.is_left_mouse_button_pressed {
-            return;
-        }
-        let x_offset = x_offset * self.mouse_sensitivity;
-        let y_offset = y_offset * self.mouse_sensitivity;
-
-        self.yaw += x_offset;
-        self.pitch += y_offset;
-
-        if constrain_pitch {
-            if self.pitch > 89.0 {
-                self.pitch = 89.0;
-            }
-            if self.pitch < -89.0 {
-                self.pitch = -89.0;
-            }
+    pub fn process_mouse_with_input(&mut self, input: &WinitInputHelper, constrain_pitch: bool) {
+        let (_x_offset, y_offset) = input.scroll_diff();
+        if y_offset != 0.0 {
+            self.process_mouse_scroll(y_offset);
         }
 
-        self.update_camera_vectors();
-    }
+        if input.mouse_held(MouseButton::Left) {
+            let (x_offset, y_offset) = input.cursor_diff();
+            let x_offset = x_offset * self.mouse_sensitivity;
+            let y_offset = y_offset * self.mouse_sensitivity;
 
-    pub fn process_mouse_input(
-        &mut self,
-        mouse_button_type: MouseButtonType,
-        mouse_button_state: MouseButtonState,
-    ) {
-        match mouse_button_type {
-            MouseButtonType::Left => {
-                self.is_left_mouse_button_pressed = mouse_button_state == MouseButtonState::Pressed;
+            self.yaw += x_offset;
+            self.pitch += y_offset;
+
+            if constrain_pitch {
+                if self.pitch > 89.0 {
+                    self.pitch = 89.0;
+                }
+                if self.pitch < -89.0 {
+                    self.pitch = -89.0;
+                }
             }
-            _ => {}
+
+            self.update_camera_vectors();
         }
     }
 
     /// processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
-    pub fn process_mouse_scroll(&mut self, y_offset: f32) {
+    fn process_mouse_scroll(&mut self, y_offset: f32) {
         if self.zoom >= 1.0 && self.zoom <= 45.0 {
             self.zoom -= y_offset;
         }
@@ -161,16 +166,6 @@ impl Camera {
         self.front = glm::normalize(&front);
         self.right = glm::normalize(&glm::cross(&self.front, &self.world_up));
         self.up = glm::normalize(&glm::cross(&self.right, &self.front));
-    }
-
-    pub fn map_key_to_movement(key: Key) -> CameraMovement {
-        match key {
-            Key::W | Key::Up => CameraMovement::Forward,
-            Key::S | Key::Down => CameraMovement::Backward,
-            Key::A | Key::Left => CameraMovement::Left,
-            Key::D | Key::Right => CameraMovement::Right,
-            _ => CameraMovement::None,
-        }
     }
 
     pub fn yaw(&self) -> f32 {

@@ -1,42 +1,29 @@
+use game_loop::TimeTrait;
+use std::sync::Arc;
+use std::time::Duration;
 use typed_builder::TypedBuilder;
+use winit_input_helper::WinitInputHelper;
+
+pub const UPDATE_PER_SECOND: usize = 240;
+#[allow(dead_code)]
+pub const FPS: usize = 60;
+#[allow(dead_code)]
+pub const TIME_STEP: Duration = Duration::from_nanos(1_000_000_000 / FPS as u64);
+
+pub struct Game<A: Application> {
+    input: WinitInputHelper,
+    app: A,
+    ctx: GLContext,
+}
 
 pub trait Application {
     fn new(_ctx: &GLContext) -> Self;
     fn init(&mut self, _ctx: &GLContext) {}
-    fn update(&mut self, _ctx: &GLContext) {}
+    fn render(&mut self, _ctx: &GLContext) {}
+    fn update(&mut self, _update_delta_time: f32) {}
     fn resize(&mut self, _ctx: &GLContext, _width: u32, _height: u32) {}
-    fn process_keyboard(&mut self, _ctx: &GLContext, _key: Key, _is_pressed: bool) {}
-    fn process_mouse(&mut self, _ctx: &GLContext, _event: MouseEvent) {}
+    fn process_input(&mut self, _ctx: &GLContext, _input: &WinitInputHelper) {}
     fn exit(&mut self, _ctx: &GLContext) {}
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum MouseButtonState {
-    Pressed,
-    Released,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum MouseButtonType {
-    Left,
-    Right,
-    Middle,
-    Unknown,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum MouseEvent {
-    Move {
-        x: f64,
-        y: f64,
-    },
-    Wheel {
-        y_offset: f32,
-    },
-    Input {
-        button: MouseButtonType,
-        state: MouseButtonState,
-    },
 }
 
 #[derive(TypedBuilder, Debug, Clone, PartialEq, Eq, Hash)]
@@ -60,15 +47,24 @@ pub struct GLContext {
     pub height: u32,
     pub scale_factor: f64,
     pub start: chrono::DateTime<chrono::Utc>,
-    pub last_frame: chrono::DateTime<chrono::Utc>,
-    pub delta_time: f32,
+    pub last_update_time: chrono::DateTime<chrono::Utc>,
+    pub last_render_time: chrono::DateTime<chrono::Utc>,
+    pub update_delta_time: f32,
+    pub render_delta_time: f32,
 }
 
-pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
+pub unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
     unsafe {
+        let width = init_info.width;
+        let height = init_info.height;
+        let title = init_info.title;
+
         // Create a context from a WebGL2 context on wasm32 targets
         #[cfg(target_arch = "wasm32")]
-        let (gl, shader_version) = {
+        let (gl, shader_version, window, event_loop) = {
+            std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+            console_log::init_with_level(log::Level::Info).expect("Cannot init logger");
+
             use wasm_bindgen::JsCast;
             let canvas = web_sys::window()
                 .unwrap()
@@ -85,14 +81,14 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
                 .dyn_into::<web_sys::WebGl2RenderingContext>()
                 .unwrap();
             let gl = glow::Context::from_webgl2_context(webgl2_context);
-            (gl, "#version 300 es")
+            let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
+            let window = winit::window::WindowBuilder::new()
+                .with_title(title.as_str())
+                .with_inner_size(winit::dpi::LogicalSize::new(width, height))
+                .build(&event_loop)
+                .unwrap();
+            (gl, "#version 300 es", window, event_loop)
         };
-
-        let width = init_info.width;
-        let height = init_info.height;
-        let title = init_info.title;
-        let major = init_info.major;
-        let minor = init_info.minor;
 
         // Create a context from a glutin window on non-wasm32 targets
         #[cfg(not(target_arch = "wasm32"))]
@@ -106,6 +102,9 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
             use glutin_winit::{DisplayBuilder, GlWindow};
             use raw_window_handle::HasRawWindowHandle;
             use std::num::NonZeroU32;
+
+            let major = init_info.major;
+            let minor = init_info.minor;
 
             let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
             let window_builder = winit::window::WindowBuilder::new()
@@ -176,172 +175,88 @@ pub unsafe fn run<App: Application>(init_info: WindowInitInfo) {
                 let scale_factor= window.scale_factor();
             }
         }
-        let mut ctx = GLContext {
+        let ctx = GLContext {
             gl,
             suggested_shader_version: shader_version,
             width,
             height,
             scale_factor,
             start: chrono::Utc::now(),
-            last_frame: chrono::Utc::now(),
-            delta_time: 0.0,
+            last_update_time: chrono::Utc::now(),
+            last_render_time: chrono::Utc::now(),
+            update_delta_time: 0.0,
+            render_delta_time: 0.0,
         };
 
         let mut app = App::new(&ctx);
         app.init(&ctx);
 
-        // We handle events differently between targets
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            use glutin::prelude::GlSurface;
-            use winit::event::{Event, WindowEvent};
+        let game = Game {
+            input: WinitInputHelper::new(),
+            app,
+            ctx,
+        };
 
-            let mut last_width = 0;
-            let mut last_height = 0;
+        let window = Arc::new(window);
+        game_loop::game_loop(
+            event_loop,
+            window,
+            game,
+            UPDATE_PER_SECOND as u32,
+            0.1,
+            move |g| {
+                let ctx = &mut g.game.ctx;
+                let now = chrono::Utc::now();
+                ctx.update_delta_time =
+                    (now - ctx.last_update_time).num_milliseconds() as f32 / 1000.0;
+                ctx.last_update_time = chrono::Utc::now();
+                g.game.app.update(ctx.update_delta_time);
+            },
+            move |g| {
+                let ctx = &mut g.game.ctx;
+                let now = chrono::Utc::now();
+                ctx.render_delta_time =
+                    (now - ctx.last_render_time).num_milliseconds() as f32 / 1000.0;
+                ctx.last_render_time = chrono::Utc::now();
+                g.game.app.render(ctx);
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    use glutin::surface::GlSurface;
+                    gl_surface.swap_buffers(&gl_context).unwrap();
 
-            let _ = event_loop.run(move |event, elwt| {
-                if let Event::WindowEvent { event, .. } = event {
-                    match event {
-                        WindowEvent::CloseRequested => {
-                            elwt.exit();
-                            app.exit(&ctx);
-                        }
-                        WindowEvent::RedrawRequested => {
-                            let now = chrono::Utc::now();
-                            ctx.delta_time =
-                                (now - ctx.last_frame).num_milliseconds() as f32 / 1000.0;
-                            ctx.last_frame = chrono::Utc::now();
-                            app.update(&ctx);
-                            gl_surface.swap_buffers(&gl_context).unwrap();
-                            window.request_redraw();
-                        }
-                        WindowEvent::Resized(physical_size) => {
-                            if physical_size.width != last_width
-                                || physical_size.height != last_height
-                            {
-                                last_width = physical_size.width;
-                                last_height = physical_size.height;
-                                log::info!("Resizing to {}x{}", width, height);
-                                app.resize(&ctx, physical_size.width, physical_size.height);
-                                window.request_redraw();
-                            }
-                        }
-                        WindowEvent::KeyboardInput { event, .. } => {
-                            let key = map_winit_key(event.logical_key);
-                            let is_pressed = event.state == winit::event::ElementState::Pressed;
-                            app.process_keyboard(&ctx, key, is_pressed);
-                            if key == Key::Escape && is_pressed {
-                                elwt.exit();
-                                app.exit(&ctx);
-                            }
-                        }
-                        WindowEvent::CursorMoved { position, .. } => {
-                            let size = window.inner_size();
-                            let height = size.height;
-                            let x = position.x;
-                            let y = height as f64 - position.y;
-                            app.process_mouse(&ctx, MouseEvent::Move { x, y });
-                        }
-                        WindowEvent::MouseWheel { delta, .. } => {
-                            let y_offset = match delta {
-                                winit::event::MouseScrollDelta::LineDelta(_, y) => y,
-                                winit::event::MouseScrollDelta::PixelDelta(_) => 0.0,
-                            };
-                            app.process_mouse(&ctx, MouseEvent::Wheel { y_offset });
-                        }
-                        WindowEvent::MouseInput { state, button, .. } => {
-                            app.process_mouse(
-                                &ctx,
-                                MouseEvent::Input {
-                                    button: match button {
-                                        winit::event::MouseButton::Left => MouseButtonType::Left,
-                                        winit::event::MouseButton::Right => MouseButtonType::Right,
-                                        winit::event::MouseButton::Middle => {
-                                            MouseButtonType::Middle
-                                        }
-                                        _ => MouseButtonType::Unknown,
-                                    },
-                                    state: match state {
-                                        winit::event::ElementState::Pressed => {
-                                            MouseButtonState::Pressed
-                                        }
-                                        winit::event::ElementState::Released => {
-                                            MouseButtonState::Released
-                                        }
-                                    },
-                                },
-                            );
-                        }
-                        _ => (),
+                    let dt =
+                        TIME_STEP.as_secs_f64() - game_loop::Time::now().sub(&g.current_instant());
+                    if dt > 0.0 {
+                        std::thread::sleep(Duration::from_secs_f64(dt));
                     }
                 }
-            });
-        }
+            },
+            move |g, event| {
+                let input = &mut g.game.input;
+                let app = &mut g.game.app;
+                let ctx = &mut g.game.ctx;
 
-        #[cfg(target_arch = "wasm32")]
-        {
-            // This could be called from `requestAnimationFrame`, a winit event
-            // loop, etc.
-            app.update(&ctx);
-            app.exit(&ctx);
-        }
-    }
-}
+                if input.update(event) {
+                    if input.key_pressed(winit::keyboard::KeyCode::Escape)
+                        || input.close_requested()
+                        || input.destroyed()
+                    {
+                        log::info!("Exiting");
+                        app.exit(ctx);
+                        g.exit();
+                        return;
+                    }
+                    if let Some(size) = input.window_resized() {
+                        let (width, height) = (size.width, size.height);
+                        log::info!("Resizing to {}x{}", width, height);
+                        app.resize(ctx, width, height);
+                        return;
+                    }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Key {
-    None,
-    W,
-    A,
-    S,
-    D,
-    Q,
-    E,
-    Up,
-    Down,
-    Left,
-    Right,
-    Space,
-    Escape,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn map_winit_key(key: winit::keyboard::Key) -> Key {
-    match key {
-        winit::keyboard::Key::Character(c) => {
-            if c == "w" {
-                Key::W
-            } else if c == "a" {
-                Key::A
-            } else if c == "s" {
-                Key::S
-            } else if c == "d" {
-                Key::D
-            } else if c == "q" {
-                Key::Q
-            } else if c == "e" {
-                Key::E
-            } else {
-                Key::None
-            }
-        }
-        winit::keyboard::Key::Named(n) => {
-            if n == winit::keyboard::NamedKey::Escape {
-                Key::Escape
-            } else if n == winit::keyboard::NamedKey::ArrowUp {
-                Key::Up
-            } else if n == winit::keyboard::NamedKey::ArrowDown {
-                Key::Down
-            } else if n == winit::keyboard::NamedKey::ArrowLeft {
-                Key::Left
-            } else if n == winit::keyboard::NamedKey::ArrowRight {
-                Key::Right
-            } else if n == winit::keyboard::NamedKey::Space {
-                Key::Space
-            } else {
-                Key::None
-            }
-        }
-        _ => Key::None,
+                    app.process_input(ctx, input);
+                }
+            },
+        )
+        .unwrap();
     }
 }

@@ -16,11 +16,13 @@ bytemuck = { version = "1.15", features = ["derive"] }
 chrono = "0.4"
 image = "0.25"
 nalgebra-glm = "0.18"
+winit = { version = "0.29", features = ["rwh_05"] }
+winit_input_helper = "0.16"
+game-loop = { version = "1.1", features = ["winit"] }
 
 [target.'cfg(not(any(target_arch = "wasm32")))'.dependencies]
 glutin = "0.31"
 glutin-winit = "0.4"
-winit = { version = "0.29", features = ["rwh_05"] }
 raw-window-handle = "0.5"
 env_logger = "0.11"
 

@@ -25,9 +25,10 @@ void main()
     float specularStrength = 0.5;
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    // here we use 32.0 instead of 32, to avoid webgl ERROR: 0:29: 'pow' : no matching overloaded function found\n\0
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
     vec3 specular = specularStrength * spec * lightColor;
 
-    vec3 result = (ambient + diffuse + specular) * objectColor;
+    vec3 result = (ambient + diffuse + viewPos) * objectColor;
     FragColor = vec4(result, 1.0);
 }
