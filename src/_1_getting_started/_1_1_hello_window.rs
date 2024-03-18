@@ -17,12 +17,19 @@ pub fn main_1_1_1() {
             .with_append(true)
             .build(&event_loop)
             .unwrap();
+        let web_width = WIDTH as f32;
+        let web_height = HEIGHT as f32;
         let canvas = window.canvas().unwrap();
-        let factor = window.scale_factor();
-        canvas.set_height((HEIGHT as f32 / factor as f32) as u32);
-        canvas.set_width((WIDTH as f32 / factor as f32) as u32);
+        canvas
+            .style()
+            .set_css_text("background-color: black; display: block; margin: 20px auto;");
+        // From winit 0.29, canvas size can't be set by request_inner_size or canvas.set_width
+        let scale_factor = window.scale_factor() as f32;
+        canvas.set_width((web_width * scale_factor) as u32);
+        canvas.set_height((web_height * scale_factor) as u32);
         canvas.style().set_css_text(
-            "position: absolute; top: 0; left: 0; background-color: black; display: block;",
+            &(canvas.style().css_text()
+                + &format!("width: {}px; height: {}px", web_width, web_height)),
         );
 
         let webgl2_context = canvas

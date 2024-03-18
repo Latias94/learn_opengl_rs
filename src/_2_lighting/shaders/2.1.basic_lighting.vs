@@ -11,10 +11,10 @@ uniform mat4 projection;
 
 void main()
 {
-	gl_Position = projection * view * model * vec4(aPos, 1.0);
 	// world space position of the vertices
 	FragPos = vec3(model * vec4(aPos, 1.0));
 	// when we apply a non-uniform scale to our model matrix, we should use a normal matrix to transform the normals
 	// Normal = mat3(transpose(inverse(model))) * aNormal;
     Normal = aNormal;
+	gl_Position = projection * view * vec4(FragPos, 1.0);
 }

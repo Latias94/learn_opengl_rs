@@ -78,7 +78,7 @@ impl Application for App {
         let lighting_shader = MyShader::new_from_source(
             gl,
             // embedded shader
-            include_str!("./shaders/2.1.basic_lighting.vs"),
+            include_str!("./shaders/2.2.basic_lighting.vs"),
             include_str!("./shaders/2.2.basic_lighting.fs"),
             Some(ctx.suggested_shader_version),
         )
