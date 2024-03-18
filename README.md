@@ -3,6 +3,15 @@
 Following [learnopengl.com](https://learnopengl.com/) with Rust, compatible with both desktop and WebGL via
 WebAssembly (wasm).
 
+Using [glow](https://github.com/grovesNL/glow), [glutin](https://github.com/rust-windowing/glutin), [winit](https://github.com/rust-windowing/winit), [winit_input_helper](https://github.com/rukai/winit_input_helper), [nalgebra-glm](https://github.com/dimforge/nalgebra)
+etc.
+
+## Chapters
+
+### [1. Getting started](https://github.com/Latias94/learn_opengl_rs/tree/main/src/_1_getting_started)
+
+### [2. Lighting](https://github.com/Latias94/learn_opengl_rs/tree/main/src/_2_lighting)
+
 ## Build
 
 ### Prerequisites
