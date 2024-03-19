@@ -1,13 +1,17 @@
 mod camera;
+mod mesh;
+mod model;
 mod shader;
 mod texture;
 mod window;
 
 mod _1_getting_started;
 mod _2_lighting;
+mod _3_model_loading;
 
 use _1_getting_started::*;
 use _2_lighting::*;
+use _3_model_loading::*;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -67,6 +71,7 @@ pub fn run_tutorial(tutorial_id: String) {
         "2_5_4" => main_2_5_4(),
         "2_6_1" => main_2_6_1(),
         "2_6_2" => main_2_6_2(),
+        "3_1_1" => main_3_1_1(),
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }
 }
