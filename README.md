@@ -6,7 +6,8 @@ WebAssembly (wasm).
 Using [glow](https://github.com/grovesNL/glow), [glutin](https://github.com/rust-windowing/glutin), [winit](https://github.com/rust-windowing/winit), [winit_input_helper](https://github.com/rukai/winit_input_helper), [nalgebra-glm](https://github.com/dimforge/nalgebra)
 etc.
 
-Since this project is for my personal learning, I will not accept any pull requests for now.
+This project make some different choices from the original tutorial, such as window abstraction, input handling,
+camera control etc.
 
 ## Chapters
 

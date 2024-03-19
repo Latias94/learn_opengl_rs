@@ -5,9 +5,9 @@ use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub fn main_2_1_1() {
+pub fn main_2_3_1() {
     let init_info = WindowInitInfo::builder()
-        .title("Colors".to_string())
+        .title("Materials".to_string())
         .build();
     unsafe {
         run::<App>(init_info);
@@ -15,49 +15,49 @@ pub fn main_2_1_1() {
 }
 
 #[rustfmt::skip]
-const VERTICES: [f32; 108] = [
-    // pos           
-    -0.5, -0.5, -0.5,
-    0.5, -0.5, -0.5, 
-    0.5,  0.5, -0.5, 
-    0.5,  0.5, -0.5, 
-    -0.5,  0.5, -0.5,  
-    -0.5, -0.5, -0.5,
+const VERTICES: [f32; 216] = [
+    // pos           normal
+    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+    0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+    -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
 
-    -0.5, -0.5,  0.5,
-    0.5, -0.5,  0.5, 
-    0.5,  0.5,  0.5, 
-    0.5,  0.5,  0.5, 
-    -0.5,  0.5,  0.5,  
-    -0.5, -0.5,  0.5,
+    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
 
-    -0.5,  0.5,  0.5, 
-    -0.5,  0.5, -0.5, 
-    -0.5, -0.5, -0.5,  
-    -0.5, -0.5, -0.5,  
-    -0.5, -0.5,  0.5,
-    -0.5,  0.5,  0.5, 
+    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+    -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
+    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+    -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
+    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
 
-    0.5,  0.5,  0.5, 
-    0.5,  0.5, -0.5, 
-    0.5, -0.5, -0.5,  
-    0.5, -0.5, -0.5,  
-    0.5, -0.5,  0.5,
-    0.5,  0.5,  0.5, 
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+    0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
+    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+    0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
 
-    -0.5, -0.5, -0.5,  
-    0.5, -0.5, -0.5, 
-    0.5, -0.5,  0.5, 
-    0.5, -0.5,  0.5, 
-    -0.5, -0.5,  0.5,
-    -0.5, -0.5, -0.5,  
+    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+    0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+    -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
 
-    -0.5,  0.5, -0.5,  
-    0.5,  0.5, -0.5, 
-    0.5,  0.5,  0.5, 
-    0.5,  0.5,  0.5, 
-    -0.5,  0.5,  0.5,
-    -0.5,  0.5, -0.5,
+    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+    -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
 ];
 
 const LIGHT_POS: glm::Vec3 = glm::Vec3::new(1.2, 1.0, 2.0);
@@ -77,8 +77,8 @@ impl Application for App {
         let lighting_shader = MyShader::new_from_source(
             gl,
             // embedded shader
-            include_str!("./shaders/1.1.colors.vs"),
-            include_str!("./shaders/1.1.colors.fs"),
+            include_str!("./shaders/3.1.materials.vs"),
+            include_str!("./shaders/3.1.materials.fs"),
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
@@ -117,19 +117,28 @@ impl Application for App {
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
             gl.bind_vertex_array(Some(cube_vao));
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
+            // position attribute
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 6 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
+            // normal attribute
+            gl.vertex_attrib_pointer_f32(
+                1,
+                3,
+                FLOAT,
+                false,
+                6 * size_of::<f32>() as i32,
+                3 * size_of::<f32>() as i32,
+            );
+            gl.enable_vertex_attrib_array(1);
 
             // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
             let light_vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
             gl.bind_vertex_array(Some(light_vao));
-            // we only need to bind to the VBO (to link it with glVertexAttribPointer),
-            // no need to fill it; the VBO's data already contains all we need (it's already bound,
-            // but we do it again for educational purposes)
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 3 * size_of::<f32>() as i32, 0);
+            // note that we update the lamp's position attribute's stride to reflect the updated buffer data
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 6 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
 
             self.cube_vao = Some(cube_vao);
@@ -147,9 +156,36 @@ impl Application for App {
             // be sure to activate shader when setting uniforms/drawing objects
             self.lighting_shader.use_shader(gl);
             self.lighting_shader
-                .set_vec3(gl, "objectColor", &glm::vec3(1.0, 0.5, 0.31));
+                .set_vec3(gl, "light.position", &LIGHT_POS);
             self.lighting_shader
-                .set_vec3(gl, "lightColor", &glm::vec3(1.0, 1.0, 1.0));
+                .set_vec3(gl, "viewPos", &self.camera.position());
+
+            // light properties
+            let duration = ctx.last_render_time - ctx.start;
+            let time = duration.num_milliseconds() as f32 / 1000.0;
+            let mut light_color = glm::Vec3::zeros();
+            light_color.x = (time * 2.0).sin();
+            light_color.y = (time * 0.7).sin();
+            light_color.z = (time * 1.3).sin();
+            let diffuse_color = light_color * 0.5; // decrease the influence
+            let ambient_color = diffuse_color * 0.2; // low influence
+            self.lighting_shader
+                .set_vec3(gl, "light.ambient", &ambient_color);
+            self.lighting_shader
+                .set_vec3(gl, "light.diffuse", &diffuse_color);
+            self.lighting_shader
+                .set_vec3(gl, "light.specular", &glm::vec3(1.0, 1.0, 1.0));
+
+            // material properties
+            self.lighting_shader
+                .set_vec3(gl, "material.ambient", &glm::vec3(1.0, 0.5, 0.31));
+            self.lighting_shader
+                .set_vec3(gl, "material.diffuse", &glm::vec3(1.0, 0.5, 0.31));
+            // specular lighting doesn't have full effect on this object's material
+            self.lighting_shader
+                .set_vec3(gl, "material.specular", &glm::vec3(0.5, 0.5, 0.5));
+            self.lighting_shader
+                .set_float(gl, "material.shininess", 32.0);
 
             // view/projection transformations
             let projection = glm::perspective(

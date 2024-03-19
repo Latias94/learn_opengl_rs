@@ -1,63 +1,66 @@
 use crate::shader::MyShader;
 use crate::window::{run, Application, GLContext, WindowInitInfo};
+use anyhow::Result;
 use glow::*;
 use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub fn main_2_2_1() {
+pub fn main_2_4_1() {
     let init_info = WindowInitInfo::builder()
-        .title("Basic Lighting Diffuse".to_string())
+        .title("lighting Maps Diffuse Map".to_string())
         .build();
     unsafe {
         run::<App>(init_info);
     }
 }
 
+// set up vertex data (and buffer(s)) and configure vertex attributes
+// ------------------------------------------------------------------
 #[rustfmt::skip]
-const VERTICES: [f32; 216] = [
-    // pos           normal
-    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
-    0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
-    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-    -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
-    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+const VERTICES: [f32; 288] = [
+    // pos             normal           tex_coord
+    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0,  0.0,
+    0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  1.0,  0.0,
+    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  1.0,  1.0,
+    0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  1.0,  1.0,
+    -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  0.0,  1.0,
+    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0,  0.0,
 
-    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
-    0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
-    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
-    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
-    -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
-    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,  0.0,  0.0,
+    0.5, -0.5,  0.5,  0.0,  0.0,  1.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0,  1.0,
+    -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  0.0,  1.0,
+    -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,  0.0,  0.0,
 
-    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
-    -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
-    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
-    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
-    -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
-    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,  1.0,  0.0,
+    -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,  1.0,  1.0,
+    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,  0.0,  1.0,
+    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,  0.0,  1.0,
+    -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,  0.0,  0.0,
+    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,  1.0,  0.0,
 
-    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
-    0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
-    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
-    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
-    0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
-    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0,  0.0,
+    0.5,  0.5, -0.5,  1.0,  0.0,  0.0,  1.0,  1.0,
+    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,  0.0,  1.0,
+    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,  0.0,  1.0,
+    0.5, -0.5,  0.5,  1.0,  0.0,  0.0,  0.0,  0.0,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0,  0.0,
 
-    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-    0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-    -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  0.0,  1.0,
+    0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  1.0,  1.0,
+    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  1.0,  0.0,
+    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  1.0,  0.0,
+    -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  0.0,  0.0,
+    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  0.0,  1.0,
 
-    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-    0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-    -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
+    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0,  1.0,
+    0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  1.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0,  0.0,
+    -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  0.0,  0.0,
+    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0,  1.0
 ];
 
 const LIGHT_POS: glm::Vec3 = glm::Vec3::new(1.2, 1.0, 2.0);
@@ -66,6 +69,7 @@ struct App {
     cube_vao: Option<VertexArray>,
     light_vao: Option<VertexArray>,
     vbo: Option<Buffer>,
+    diffuse_map: Option<Texture>,
     lighting_shader: MyShader,
     lighting_cube_shader: MyShader,
     camera: crate::camera::Camera,
@@ -77,8 +81,8 @@ impl Application for App {
         let lighting_shader = MyShader::new_from_source(
             gl,
             // embedded shader
-            include_str!("./shaders/2.1.basic_lighting.vs"),
-            include_str!("./shaders/2.1.basic_lighting.fs"),
+            include_str!("./shaders/4.1.lighting_maps.vs"),
+            include_str!("./shaders/4.1.lighting_maps.fs"),
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
@@ -96,6 +100,7 @@ impl Application for App {
             cube_vao: None,
             light_vao: None,
             vbo: None,
+            diffuse_map: None,
             lighting_shader,
             lighting_cube_shader,
             camera,
@@ -118,7 +123,7 @@ impl Application for App {
                 .expect("Cannot create vertex array");
             gl.bind_vertex_array(Some(cube_vao));
             // position attribute
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 6 * size_of::<f32>() as i32, 0);
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 8 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
             // normal attribute
             gl.vertex_attrib_pointer_f32(
@@ -126,10 +131,20 @@ impl Application for App {
                 3,
                 FLOAT,
                 false,
-                6 * size_of::<f32>() as i32,
+                8 * size_of::<f32>() as i32,
                 3 * size_of::<f32>() as i32,
             );
             gl.enable_vertex_attrib_array(1);
+            // texture coord attribute
+            gl.vertex_attrib_pointer_f32(
+                2,
+                2,
+                FLOAT,
+                false,
+                8 * size_of::<f32>() as i32,
+                6 * size_of::<f32>() as i32,
+            );
+            gl.enable_vertex_attrib_array(2);
 
             // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
             let light_vao = gl
@@ -138,12 +153,28 @@ impl Application for App {
             gl.bind_vertex_array(Some(light_vao));
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
             // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 6 * size_of::<f32>() as i32, 0);
+            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 8 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
 
-            self.lighting_shader.use_shader(gl);
-            self.lighting_shader.set_vec3(gl, "lightPos", &LIGHT_POS);
+            // load textures
+            let diffuse_map = load_texture_from_bytes(
+                gl,
+                include_bytes!("../../resources/textures/container2.png"),
+            )
+            .expect("Failed to load texture");
 
+            self.lighting_shader.use_shader(gl);
+            self.lighting_shader.set_int(gl, "material.diffuse", 0);
+
+            gl.active_texture(1);
+            let _specular_map = load_texture_from_bytes(
+                gl,
+                include_bytes!("../../resources/textures/container2_specular.png"),
+            )
+            .expect("Failed to load texture");
+            self.lighting_shader.set_int(gl, "material.specular", 1);
+
+            self.diffuse_map = Some(diffuse_map);
             self.cube_vao = Some(cube_vao);
             self.light_vao = Some(light_vao);
             self.vbo = Some(vbo);
@@ -159,9 +190,23 @@ impl Application for App {
             // be sure to activate shader when setting uniforms/drawing objects
             self.lighting_shader.use_shader(gl);
             self.lighting_shader
-                .set_vec3(gl, "objectColor", &glm::vec3(1.0, 0.5, 0.31));
+                .set_vec3(gl, "light.position", &LIGHT_POS);
             self.lighting_shader
-                .set_vec3(gl, "lightColor", &glm::vec3(1.0, 1.0, 1.0));
+                .set_vec3(gl, "viewPos", &self.camera.position());
+
+            // light properties
+            self.lighting_shader
+                .set_vec3(gl, "light.ambient", &glm::vec3(0.2, 0.2, 0.2));
+            self.lighting_shader
+                .set_vec3(gl, "light.diffuse", &glm::vec3(0.5, 0.5, 0.5));
+            self.lighting_shader
+                .set_vec3(gl, "light.specular", &glm::vec3(1.0, 1.0, 1.0));
+
+            // material properties
+            self.lighting_shader
+                .set_vec3(gl, "material.specular", &glm::vec3(0.5, 0.5, 0.5));
+            self.lighting_shader
+                .set_float(gl, "material.shininess", 64.0);
 
             // view/projection transformations
             let projection = glm::perspective(
@@ -177,6 +222,10 @@ impl Application for App {
             // world transformation
             let model = glm::Mat4::identity();
             self.lighting_shader.set_mat4(gl, "model", &model);
+
+            // bind diffuse map
+            gl.active_texture(TEXTURE0);
+            gl.bind_texture(TEXTURE_2D, self.diffuse_map);
 
             gl.bind_vertex_array(self.cube_vao);
             gl.draw_arrays(TRIANGLES, 0, 36);
@@ -225,6 +274,40 @@ impl Application for App {
             if let Some(buffer) = self.vbo {
                 gl.delete_buffer(buffer);
             }
+
+            if let Some(texture) = self.diffuse_map {
+                gl.delete_texture(texture);
+            }
         }
     }
+}
+
+fn load_texture_from_bytes(gl: &Context, bytes: &[u8]) -> Result<Texture> {
+    let img = image::load_from_memory(bytes)?.flipv().to_rgba8();
+    let (width, height) = img.dimensions();
+    let data = img.into_raw();
+    let texture = unsafe {
+        let texture = gl.create_texture().expect("Create texture");
+        gl.bind_texture(TEXTURE_2D, Some(texture));
+        gl.tex_image_2d(
+            TEXTURE_2D,
+            0,
+            RGBA as i32,
+            width as i32,
+            height as i32,
+            0,
+            RGBA,
+            UNSIGNED_BYTE,
+            Some(&data),
+        );
+        gl.generate_mipmap(TEXTURE_2D);
+
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, REPEAT as i32);
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, REPEAT as i32);
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MIN_FILTER, LINEAR_MIPMAP_LINEAR as i32);
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, LINEAR as i32);
+
+        texture
+    };
+    Ok(texture)
 }

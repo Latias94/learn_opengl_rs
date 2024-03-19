@@ -60,7 +60,6 @@ const VERTICES: [f32; 216] = [
     -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
 ];
 
-const CAMERA_UP: glm::Vec3 = glm::Vec3::new(0.0, 1.0, 0.0);
 const LIGHT_POS: glm::Vec3 = glm::Vec3::new(1.2, 1.0, 2.0);
 
 struct App {
@@ -91,10 +90,8 @@ impl Application for App {
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
-        let yaw = -90.0f32;
-        let camera_pos = glm::vec3(0.0, 0.0, 4.0);
-        let pitch = 0.0f32;
-        let camera = crate::camera::Camera::new(camera_pos, CAMERA_UP, yaw, pitch);
+        let camera_pos = glm::vec3(0.0, 0.0, 3.0);
+        let camera = crate::camera::Camera::new_with_position(camera_pos);
         Self {
             cube_vao: None,
             light_vao: None,

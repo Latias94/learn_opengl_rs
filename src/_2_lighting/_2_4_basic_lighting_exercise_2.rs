@@ -60,8 +60,6 @@ const VERTICES: [f32; 216] = [
     -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
 ];
 
-const CAMERA_UP: glm::Vec3 = glm::Vec3::new(0.0, 1.0, 0.0);
-
 struct App {
     cube_vao: Option<VertexArray>,
     light_vao: Option<VertexArray>,
@@ -90,10 +88,8 @@ impl Application for App {
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
-        let yaw = -90.0f32;
-        let camera_pos = glm::vec3(0.0, 0.0, 4.0);
-        let pitch = 0.0f32;
-        let camera = crate::camera::Camera::new(camera_pos, CAMERA_UP, yaw, pitch);
+        let camera_pos = glm::vec3(0.0, 0.0, 3.0);
+        let camera = crate::camera::Camera::new_with_position(camera_pos);
         Self {
             cube_vao: None,
             light_vao: None,
@@ -158,7 +154,7 @@ impl Application for App {
             let mut light_pos = glm::Vec3::new(1.2, 1.0, 2.0);
             // change the light's position values over time (can be done anywhere in the render loop actually,
             // but try to do it at least before using the light source positions)
-            let duration = ctx.last_update_time - ctx.start;
+            let duration = ctx.last_render_time - ctx.start;
             let time = duration.num_milliseconds() as f32 / 1000.0;
             light_pos.x = 1.0 + (time.sin() * 2.0);
             light_pos.y = time.sin() / 2.0 * 1.0;

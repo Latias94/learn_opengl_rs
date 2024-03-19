@@ -1,5 +1,6 @@
 mod camera;
 mod shader;
+mod texture;
 mod window;
 
 mod _1_getting_started;
@@ -52,6 +53,11 @@ pub fn run_tutorial(tutorial_id: String) {
         "2_2_2" => main_2_2_2(),
         "2_2_3" => main_2_2_3(),
         "2_2_4" => main_2_2_4(),
+        "2_2_5" => main_2_2_5(),
+        "2_3_1" => main_2_3_1(),
+        "2_3_2" => main_2_3_2(),
+        "2_4_1" => main_2_4_1(),
+        "2_4_2" => main_2_4_2(),
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }
 }

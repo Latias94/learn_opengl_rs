@@ -70,6 +70,15 @@ impl Camera {
         camera
     }
 
+    pub fn new_with_position(position: glm::Vec3) -> Self {
+        let mut camera = Camera {
+            position,
+            ..Default::default()
+        };
+        camera.update_camera_vectors();
+        camera
+    }
+
     /// constructor with scalar values
     #[allow(clippy::too_many_arguments)]
     pub fn new_with_scalar(

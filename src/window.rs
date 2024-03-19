@@ -267,10 +267,6 @@ pub unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                     return;
                 }
 
-                if input.key_pressed(winit::keyboard::KeyCode::KeyW) {
-                    log::info!("KeyW pressed");
-                }
-
                 app.process_input(ctx, input);
             }
         },
