@@ -193,6 +193,10 @@ impl Camera {
         self.position
     }
 
+    pub fn front(&self) -> glm::Vec3 {
+        self.front
+    }
+
     pub fn view_matrix(&self) -> glm::Mat4 {
         glm::look_at(&self.position, &(self.position + self.front), &self.up)
     }

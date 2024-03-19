@@ -27,3 +27,30 @@ pub use _4_1_lighting_maps_diffuse_map::main_2_4_1;
 
 mod _4_2_lighting_maps_specular_map;
 pub use _4_2_lighting_maps_specular_map::main_2_4_2;
+
+mod _4_3_lighting_maps_exercise_2;
+pub use _4_3_lighting_maps_exercise_2::main_2_4_3;
+
+mod _4_4_lighting_maps_exercise_3;
+pub use _4_4_lighting_maps_exercise_3::main_2_4_4;
+
+mod _4_5_lighting_maps_exercise_4;
+pub use _4_5_lighting_maps_exercise_4::main_2_4_5;
+
+mod _5_1_light_casters_directional;
+pub use _5_1_light_casters_directional::main_2_5_1;
+
+mod _5_2_light_casters_point;
+pub use _5_2_light_casters_point::main_2_5_2;
+
+mod _5_3_light_casters_spot;
+pub use _5_3_light_casters_spot::main_2_5_3;
+
+mod _5_4_light_casters_spot_soft;
+pub use _5_4_light_casters_spot_soft::main_2_5_4;
+
+mod _6_1_multiple_lights;
+pub use _6_1_multiple_lights::main_2_6_1;
+
+mod _6_2_multiple_lights_exercise_1;
+pub use _6_2_multiple_lights_exercise_1::main_2_6_2;
