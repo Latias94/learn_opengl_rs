@@ -13,7 +13,25 @@ camera control etc.
 
 ### [1. Getting started](https://github.com/Latias94/learn_opengl_rs/tree/main/src/_1_getting_started)
 
+<p align="left">
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/1_3_2.png" width="33%" alt="1_3_2" />
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/1_4_2.png" width="33%"  alt="1_4_2"/>
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/1_7_3.png" width="33%"  alt="1_7_3"/>
+</p>
+
 ### [2. Lighting](https://github.com/Latias94/learn_opengl_rs/tree/main/src/_2_lighting)
+
+<p align="left">
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/2_2_1.png" width="33%" alt="2_2_1" />
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/2_4_2.png" width="33%"  alt="2_4_2"/>
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/2_6_1.png" width="33%"  alt="2_6_1"/>
+</p>
+
+### [3. Model loading](https://github.com/Latias94/learn_opengl_rs/tree/main/src/_3_model_loading)
+
+<p align="left">
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/3_1_1.png" width="33%" alt="3_1_1" />
+</p>
 
 ## Build
 
@@ -25,7 +43,8 @@ command found in `justfile` manually.
 ### Desktop
 
 ```shell
-just run 1_2_1 # Run tutorial 1_2_1
+just run 1_2_1 # Debug build then Run tutorial 1_2_1
+just rrun 3_1_1 # Release build then run tutorial 3_1_1
 ```
 
 ### WebGL

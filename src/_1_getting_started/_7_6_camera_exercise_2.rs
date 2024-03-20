@@ -246,12 +246,7 @@ impl Application for App {
                 let angle = 20.0 * i as f32;
                 model = glm::rotate(&model, angle.to_radians(), &glm::vec3(1.0, 0.3, 0.5));
                 self.shader.set_mat4(gl, "model", &model);
-                gl.draw_arrays(
-                    // mode, first, count
-                    TRIANGLES, // mode
-                    0,         // first
-                    36,        // count
-                );
+                gl.draw_arrays(TRIANGLES, 0, 36);
             }
         }
     }

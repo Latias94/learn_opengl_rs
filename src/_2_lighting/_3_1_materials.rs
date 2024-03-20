@@ -94,6 +94,8 @@ impl Application for App {
         let camera = crate::camera::Camera::new_with_position(camera_pos);
 
         unsafe {
+            gl.enable(DEPTH_TEST);
+
             // first, configure the cube's VAO (and VBO)
             let vbo = gl.create_buffer().expect("Cannot create vbo buffer");
             gl.bind_buffer(ARRAY_BUFFER, Some(vbo));
