@@ -5,7 +5,7 @@ pub struct MyShader {
     program: Program,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ShaderType {
     Vertex,
     Fragment,

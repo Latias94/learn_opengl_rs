@@ -7,8 +7,12 @@ build-web:
   wasm-pack build --out-dir web --target web --release
 
 run TUTORIAL="1_1_1":
-  @echo 'Run winit with TUTORIAL={{TUTORIAL}}'
+  @echo 'Debug mode, Run winit with TUTORIAL={{TUTORIAL}}'
   RUST_LOG=info cargo run -- {{TUTORIAL}}
+
+rrun TUTORIAL="1_1_1":
+  @echo 'Release mode, Run winit with TUTORIAL={{TUTORIAL}}'
+  RUST_LOG=info cargo run -r -- {{TUTORIAL}}
 
 web:
   @echo 'Build and serve for web'

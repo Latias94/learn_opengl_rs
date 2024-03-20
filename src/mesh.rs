@@ -1,4 +1,5 @@
 use crate::shader::MyShader;
+use crate::texture::{map_texture_type_to_string, Texture, TextureType};
 use bytemuck::{offset_of, Pod, Zeroable};
 use glow::{Buffer, Context, HasContext, VertexArray};
 use nalgebra_glm as glm;
@@ -11,15 +12,18 @@ pub struct Vertex {
     pub tex_coords: glm::Vec2,
 }
 
-pub struct Texture {
-    pub raw: glow::Texture,
-    pub ty: String,
+#[derive(Debug)]
+pub struct Material {
+    pub name: String,
+    pub textures: Vec<Texture>,
 }
 
+#[derive(Debug)]
 pub struct Mesh {
+    pub name: String,
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
-    pub textures: Vec<Texture>,
+    pub material_id: usize,
     pub vao: VertexArray,
     pub vbo: Buffer,
     pub ebo: Buffer,
@@ -28,9 +32,10 @@ pub struct Mesh {
 impl Mesh {
     pub fn new(
         gl: &Context,
+        name: &str,
         vertices: Vec<Vertex>,
         indices: Vec<u32>,
-        textures: Vec<Texture>,
+        material_id: usize,
     ) -> Self {
         let vao = unsafe {
             gl.create_vertex_array()
@@ -39,9 +44,10 @@ impl Mesh {
         let vbo = unsafe { gl.create_buffer().expect("Cannot create buffer") };
         let ebo = unsafe { gl.create_buffer().expect("Cannot create buffer") };
         let mut mesh = Mesh {
+            name: name.to_string(),
             vertices,
             indices,
-            textures,
+            material_id,
             vao,
             vbo,
             ebo,
@@ -104,38 +110,39 @@ impl Mesh {
         }
     }
 
-    pub fn draw(&self, gl: &Context, shader: &MyShader) {
+    pub fn draw(&self, gl: &Context, materials: &[Material], shader: &MyShader) {
         unsafe {
-            let mut diffuse_nr = 1;
-            let mut specular_nr = 1;
-            let mut normal_nr = 1;
-            let mut height_nr = 1;
-            for (i, texture) in self.textures.iter().enumerate() {
+            let material = &materials[self.material_id];
+
+            let mut diffuse_nr = 0;
+            let mut specular_nr = 0;
+            let mut normal_nr = 0;
+            let mut height_nr = 0;
+
+            for (i, texture) in material.textures.iter().enumerate() {
                 gl.active_texture(glow::TEXTURE0 + i as u32);
-                let name = match texture.ty.as_str() {
-                    "texture_diffuse" => {
+                let name = match texture.ty {
+                    TextureType::Diffuse => {
                         diffuse_nr += 1;
-                        format!("texture_diffuse{}", diffuse_nr)
+                        format!("{}{}", map_texture_type_to_string(texture.ty), diffuse_nr)
                     }
-                    "texture_specular" => {
+                    TextureType::Specular => {
                         specular_nr += 1;
-                        format!("texture_specular{}", specular_nr)
+                        format!("{}{}", map_texture_type_to_string(texture.ty), specular_nr)
                     }
-                    "texture_normal" => {
+                    TextureType::Normal => {
                         normal_nr += 1;
-                        format!("texture_normal{}", normal_nr)
+                        format!("{}{}", map_texture_type_to_string(texture.ty), normal_nr)
                     }
-                    "texture_height" => {
+                    TextureType::Height => {
                         height_nr += 1;
-                        format!("texture_height{}", height_nr)
-                    }
-                    _ => panic!("Unknown texture type"),
+                        format!("{}{}", map_texture_type_to_string(texture.ty), height_nr)
+                    } // _ => panic!("Unknown texture type"),
                 };
-                shader.set_int(gl, &format!("material.{}", name), i as i32);
-                gl.create_texture().expect("Create texture");
+                // shader.set_int(gl, &format!("material.{}", name), i as i32);
+                shader.set_int(gl, &name, i as i32);
                 gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw));
             }
-            gl.active_texture(glow::TEXTURE0);
 
             gl.bind_vertex_array(Some(self.vao));
             gl.draw_elements(
@@ -145,10 +152,12 @@ impl Mesh {
                 0,
             );
             gl.bind_vertex_array(None);
+
+            gl.active_texture(glow::TEXTURE0);
         }
     }
 
-    pub fn clear(&self, gl: &Context) {
+    pub fn delete(&self, gl: &Context) {
         unsafe {
             gl.delete_vertex_array(self.vao);
             gl.delete_buffer(self.vbo);

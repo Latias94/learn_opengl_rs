@@ -8,29 +8,50 @@ name = "lib_learn_opengl_rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+# OpenGL bindings
 glow = "0.13"
 cfg-if = "1"
 log = "0.4"
 typed-builder = "0.18"
+# vector casting
 bytemuck = { version = "1.15", features = ["derive"] }
+# time
 chrono = "0.4"
+# image loading
 image = "0.25"
+# glm
 nalgebra-glm = { version = "0.18", features = ["convert-bytemuck"] }
+# cross-platform window management library
 winit = { version = "0.29", features = ["rwh_05"] }
 winit_input_helper = "0.16"
 game-loop = { version = "1.1", features = ["winit"] }
 anyhow = "1"
-tobj = "4"
-russimp = "3.2"
+# obj loader
+tobj = { version = "4", features = [
+    "async",
+] }
+#russimp = { version = "3.2", features = ["prebuilt"] }
 
 [target.'cfg(not(any(target_arch = "wasm32")))'.dependencies]
+# OpenGL context
 glutin = "0.31"
 glutin-winit = "0.4"
 raw-window-handle = "0.5"
 env_logger = "0.11"
+# block on async
+pollster = "0.3"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = { version = "0.3", features = ["HtmlCanvasElement", "WebGl2RenderingContext", "Window"] }
+getrandom = { version = "0.2", features = ["js"] }
+web-sys = { version = "0.3", features = ["HtmlCanvasElement", "WebGl2RenderingContext", "Window", "Location"] }
 wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0"
+# load model or shader from url
+reqwest = "0.11"
+
+[build-dependencies]
+fs_extra = "1.3"
+anyhow = "1"
+glob = "0.3"
