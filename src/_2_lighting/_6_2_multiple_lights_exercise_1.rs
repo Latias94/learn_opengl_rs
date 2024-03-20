@@ -1,3 +1,4 @@
+use crate::camera::Camera;
 use crate::shader::MyShader;
 use crate::window::{run, Application, GLContext, WindowInitInfo};
 use anyhow::Result;
@@ -115,7 +116,7 @@ impl Application for App {
         )
         .expect("Failed to create program");
         let camera_pos = glm::vec3(0.0, 0.0, 3.0);
-        let camera = crate::camera::Camera::new_with_position(camera_pos);
+        let camera = Camera::new_with_position(camera_pos);
         let current_style = 0;
 
         unsafe {

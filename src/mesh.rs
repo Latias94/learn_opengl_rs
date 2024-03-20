@@ -121,27 +121,31 @@ impl Mesh {
 
             for (i, texture) in material.textures.iter().enumerate() {
                 gl.active_texture(glow::TEXTURE0 + i as u32);
-                let name = match texture.ty {
+                let name = match texture.ty() {
                     TextureType::Diffuse => {
                         diffuse_nr += 1;
-                        format!("{}{}", map_texture_type_to_string(texture.ty), diffuse_nr)
+                        format!("{}{}", map_texture_type_to_string(texture.ty()), diffuse_nr)
                     }
                     TextureType::Specular => {
                         specular_nr += 1;
-                        format!("{}{}", map_texture_type_to_string(texture.ty), specular_nr)
+                        format!(
+                            "{}{}",
+                            map_texture_type_to_string(texture.ty()),
+                            specular_nr
+                        )
                     }
                     TextureType::Normal => {
                         normal_nr += 1;
-                        format!("{}{}", map_texture_type_to_string(texture.ty), normal_nr)
+                        format!("{}{}", map_texture_type_to_string(texture.ty()), normal_nr)
                     }
                     TextureType::Height => {
                         height_nr += 1;
-                        format!("{}{}", map_texture_type_to_string(texture.ty), height_nr)
+                        format!("{}{}", map_texture_type_to_string(texture.ty()), height_nr)
                     } // _ => panic!("Unknown texture type"),
                 };
                 // shader.set_int(gl, &format!("material.{}", name), i as i32);
                 shader.set_int(gl, &name, i as i32);
-                gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw));
+                gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw()));
             }
 
             gl.bind_vertex_array(Some(self.vao));

@@ -1,3 +1,4 @@
+use crate::camera::Camera;
 use crate::model::Model;
 use crate::resources;
 use crate::shader::MyShader;
@@ -18,7 +19,7 @@ pub async fn main_3_1_1() {
 
 struct App {
     our_shader: MyShader,
-    camera: crate::camera::Camera,
+    camera: Camera,
     model: Model,
 }
 
@@ -38,7 +39,7 @@ impl Application for App {
         )
         .expect("Failed to create program");
 
-        let camera = crate::camera::Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
+        let camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
 
         let start = Utc::now();
         let model = resources::load_obj(gl, "objects/backpack/backpack.obj")

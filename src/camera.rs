@@ -135,7 +135,7 @@ impl Camera {
         if input.mouse_held(MouseButton::Left) {
             let (x_offset, y_offset) = input.cursor_diff();
             let x_offset = x_offset * self.mouse_sensitivity;
-            let y_offset = y_offset * self.mouse_sensitivity;
+            let y_offset = -y_offset * self.mouse_sensitivity;
 
             self.yaw += x_offset;
             self.pitch += y_offset;

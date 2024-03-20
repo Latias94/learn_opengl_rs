@@ -14,9 +14,9 @@ pub enum TextureType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Texture {
-    pub raw: glow::Texture,
-    pub file_name: String,
-    pub ty: TextureType,
+    raw: glow::Texture,
+    file_name: String,
+    ty: TextureType,
 }
 
 impl Texture {
@@ -65,6 +65,32 @@ impl Texture {
     ) -> anyhow::Result<Self> {
         let img = image::load_from_memory(bytes).expect("Failed to load texture from bytes");
         Self::from_image(gl, &img, file_name, ty)
+    }
+
+    pub fn ty(&self) -> TextureType {
+        self.ty
+    }
+
+    pub fn raw(&self) -> glow::Texture {
+        self.raw
+    }
+
+    #[allow(dead_code)]
+    pub fn file_name(&self) -> &str {
+        &self.file_name
+    }
+
+    pub fn delete(&self, gl: &Context) {
+        unsafe {
+            gl.delete_texture(self.raw);
+        }
+    }
+
+    pub fn bind(&self, gl: &Context, slot: u32) {
+        unsafe {
+            gl.active_texture(glow::TEXTURE0 + slot);
+            gl.bind_texture(TEXTURE_2D, Some(self.raw));
+        }
     }
 }
 

@@ -71,7 +71,7 @@ impl Application for App {
             )
             .expect("Failed to create program");
 
-            App { vao, vbo, program }
+            Self { vao, vbo, program }
         }
     }
 

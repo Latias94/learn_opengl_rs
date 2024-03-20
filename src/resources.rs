@@ -69,7 +69,7 @@ pub async fn load_binary(file_name: &str) -> anyhow::Result<Vec<u8>> {
     Ok(data)
 }
 
-pub async fn load_texture(
+pub async fn load_texture_with_type(
     gl: &Context,
     file_name: &str,
     ty: TextureType,
@@ -77,6 +77,12 @@ pub async fn load_texture(
     log::info!("Loading texture ty: {:?}, file_name: {}", ty, file_name);
     let data = load_binary(file_name).await?;
     Texture::from_bytes(gl, &data, file_name, ty)
+}
+
+pub async fn load_texture(gl: &Context, file_name: &str) -> anyhow::Result<Texture> {
+    log::info!("Loading texture file_name: {}", file_name);
+    let data = load_binary(file_name).await?;
+    Texture::from_bytes(gl, &data, file_name, TextureType::Diffuse)
 }
 
 pub async fn load_obj(gl: &Context, file_name: &str) -> anyhow::Result<Model> {
@@ -108,7 +114,7 @@ pub async fn load_obj(gl: &Context, file_name: &str) -> anyhow::Result<Model> {
         let mut textures = Vec::new();
         if let Some(p) = m.diffuse_texture {
             let path = format!("{}/{}", model_directory_path, p);
-            let diffuse = load_texture(gl, &path, TextureType::Diffuse).await?;
+            let diffuse = load_texture_with_type(gl, &path, TextureType::Diffuse).await?;
             textures.push(diffuse);
         }
         // if let Some(p) = m.specular_texture {
