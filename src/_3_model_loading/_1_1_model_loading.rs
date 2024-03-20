@@ -2,6 +2,7 @@ use crate::model::Model;
 use crate::resources;
 use crate::shader::MyShader;
 use crate::window::{run, Application, GLContext, WindowInitInfo};
+use chrono::Utc;
 use glow::*;
 use nalgebra_glm as glm;
 use winit_input_helper::WinitInputHelper;
@@ -39,10 +40,15 @@ impl Application for App {
 
         let camera = crate::camera::Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
 
+        let start = Utc::now();
         let model = resources::load_obj(gl, "objects/backpack/backpack.obj")
             .await
             .expect("Failed to load model");
-        log::info!("Model loaded");
+        let end = Utc::now();
+        log::info!("Model loaded in {} ms", (end - start).num_milliseconds());
+        #[cfg(debug_assertions)]
+        log::info!("It is better to run this demo in release mode: `just rrun 3_1_1`");
+        // TODO: Vertex deduplication
 
         Self {
             our_shader,
