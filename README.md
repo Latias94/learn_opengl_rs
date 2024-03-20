@@ -31,8 +31,10 @@ camera control etc.
 
 <p align="left">
   <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/3_1_1.png" width="32%" alt="3_1_1" />
-  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/3_1_1-web.png" width="64%" alt="3_1_1-web" />
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/3_1_1-web.png" width="47%" alt="3_1_1-web" />
 </p>
+
+### 4. Advanced OpenGL (TODO)
 
 ## Build
 
