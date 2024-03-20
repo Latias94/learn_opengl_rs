@@ -1,17 +1,16 @@
 use crate::shader::MyShader;
 use crate::window::{run, Application, GLContext, WindowInitInfo};
-use chrono::Utc;
 use glow::*;
 use image::GenericImageView;
 use nalgebra_glm as glm;
 use std::mem::size_of;
 
-pub fn main_1_6_3() {
+pub async fn main_1_6_3() {
     let init_info = WindowInitInfo::builder()
         .title("Coordinate Systems Multiple".to_string())
         .build();
     unsafe {
-        run::<App>(init_info);
+        run::<App>(init_info).await;
     }
 }
 
@@ -76,17 +75,15 @@ const CUBE_POSITIONS: [glm::Vec3; 10] = [
 ];
 
 struct App {
-    vao: Option<VertexArray>,
-    vbo: Option<Buffer>,
-    texture_1: Option<Texture>,
-    texture_2: Option<Texture>,
+    vao: VertexArray,
+    vbo: Buffer,
+    texture_1: Texture,
+    texture_2: Texture,
     shader: MyShader,
-    #[allow(dead_code)]
-    start: chrono::DateTime<Utc>,
 }
 
 impl Application for App {
-    fn new(ctx: &GLContext) -> Self {
+    async fn new(ctx: &GLContext) -> Self {
         let gl = &ctx.gl;
         let shader = MyShader::new_from_source(
             gl,
@@ -96,20 +93,8 @@ impl Application for App {
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
-        Self {
-            shader,
-            vao: None,
-            vbo: None,
-            texture_1: None,
-            texture_2: None,
-            start: Utc::now(),
-        }
-    }
 
-    fn init(&mut self, ctx: &GLContext) {
         unsafe {
-            let gl = &ctx.gl;
-
             gl.enable(DEPTH_TEST);
 
             let vao = gl
@@ -193,17 +178,20 @@ impl Application for App {
             );
             gl.generate_mipmap(TEXTURE_2D);
 
-            self.shader.use_shader(gl);
-            self.shader.set_int(gl, "texture1", 0);
-            self.shader.set_int(gl, "texture2", 1);
+            shader.use_shader(gl);
+            shader.set_int(gl, "texture1", 0);
+            shader.set_int(gl, "texture2", 1);
 
             gl.bind_buffer(ARRAY_BUFFER, None);
             gl.bind_vertex_array(None);
 
-            self.vao = Some(vao);
-            self.vbo = Some(vbo);
-            self.texture_1 = Some(texture_1);
-            self.texture_2 = Some(texture_2);
+            Self {
+                vao,
+                vbo,
+                texture_1,
+                texture_2,
+                shader,
+            }
         }
     }
 
@@ -214,12 +202,12 @@ impl Application for App {
             gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
             gl.active_texture(TEXTURE0);
-            gl.bind_texture(TEXTURE_2D, self.texture_1);
+            gl.bind_texture(TEXTURE_2D, Some(self.texture_1));
 
             gl.active_texture(TEXTURE1);
-            gl.bind_texture(TEXTURE_2D, self.texture_2);
+            gl.bind_texture(TEXTURE_2D, Some(self.texture_2));
 
-            gl.bind_vertex_array(self.vao);
+            gl.bind_vertex_array(Some(self.vao));
             self.shader.use_shader(gl);
 
             let mut view = glm::Mat4::identity();
@@ -262,21 +250,13 @@ impl Application for App {
         unsafe {
             self.shader.delete(gl);
 
-            if let Some(vertex_array) = self.vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.vao);
 
-            if let Some(buffer) = self.vbo {
-                gl.delete_buffer(buffer);
-            }
+            gl.delete_buffer(self.vbo);
 
-            if let Some(texture) = self.texture_1 {
-                gl.delete_texture(texture);
-            }
+            gl.delete_texture(self.texture_1);
 
-            if let Some(texture) = self.texture_2 {
-                gl.delete_texture(texture);
-            }
+            gl.delete_texture(self.texture_2);
         }
     }
 }

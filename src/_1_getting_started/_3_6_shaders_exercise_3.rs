@@ -3,12 +3,12 @@ use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_3_6() {
+pub async fn main_1_3_6() {
     let init_info = WindowInitInfo::builder()
         .title("Shaders Exercise 3".to_string())
         .build();
     unsafe {
-        run::<App>(init_info);
+        run::<App>(init_info).await;
     }
 }
 
@@ -20,13 +20,13 @@ const VERTICES: [f32; 18] = [
 ];
 
 struct App {
-    vao: Option<VertexArray>,
-    vbo: Option<Buffer>,
+    vao: VertexArray,
+    vbo: Buffer,
     shader: MyShader,
 }
 
 impl Application for App {
-    fn new(ctx: &GLContext) -> Self {
+    async fn new(ctx: &GLContext) -> Self {
         let gl = &ctx.gl;
         let shader = MyShader::new_from_source(
             gl,
@@ -36,16 +36,8 @@ impl Application for App {
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
-        Self {
-            shader,
-            vao: None,
-            vbo: None,
-        }
-    }
 
-    fn init(&mut self, ctx: &GLContext) {
         unsafe {
-            let gl = &ctx.gl;
             let vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
@@ -76,8 +68,7 @@ impl Application for App {
             // VAOs requires a call to glBindVertexArray anyway, so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
             gl.bind_vertex_array(None);
 
-            self.vao = Some(vao);
-            self.vbo = Some(vbo);
+            Self { vao, vbo, shader }
         }
     }
 
@@ -91,7 +82,7 @@ impl Application for App {
 
             // seeing as we only have a single VAO there's no need to bind it every time,
             // but we'll do so to keep things a bit more organized
-            gl.bind_vertex_array(self.vao);
+            gl.bind_vertex_array(Some(self.vao));
             gl.draw_arrays(TRIANGLES, 0, 3);
         }
     }
@@ -108,13 +99,9 @@ impl Application for App {
         unsafe {
             self.shader.delete(gl);
 
-            if let Some(vertex_array) = self.vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.vao);
 
-            if let Some(buffer) = self.vbo {
-                gl.delete_buffer(buffer);
-            }
+            gl.delete_buffer(self.vbo);
         }
     }
 }

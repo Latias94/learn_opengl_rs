@@ -2,12 +2,12 @@ use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_2_4() {
+pub async fn main_1_2_4() {
     let init_info = WindowInitInfo::builder()
         .title("Hello Triangle Exercise 2".to_string())
         .build();
     unsafe {
-        run::<App>(init_info);
+        run::<App>(init_info).await;
     }
 }
 
@@ -22,21 +22,16 @@ const SECOND_TRIANGLE: [f32; 9] = [
     0.45, 0.5, 0.0, // top
 ];
 
-#[derive(Default)]
 struct App {
-    first_vao: Option<VertexArray>,
-    first_vbo: Option<Buffer>,
-    second_vao: Option<VertexArray>,
-    second_vbo: Option<Buffer>,
-    program: Option<Program>,
+    first_vao: VertexArray,
+    first_vbo: Buffer,
+    second_vao: VertexArray,
+    second_vbo: Buffer,
+    program: Program,
 }
 
 impl Application for App {
-    fn new(_ctx: &GLContext) -> Self {
-        Self::default()
-    }
-
-    fn init(&mut self, ctx: &GLContext) {
+    async fn new(ctx: &GLContext) -> Self {
         unsafe {
             let gl = &ctx.gl;
             let shader_version = ctx.suggested_shader_version;
@@ -128,11 +123,13 @@ impl Application for App {
                 gl.delete_shader(shader);
             }
 
-            self.program = Some(program);
-            self.first_vao = Some(first_vao);
-            self.first_vbo = Some(first_vbo);
-            self.second_vao = Some(second_vao);
-            self.second_vbo = Some(second_vbo);
+            Self {
+                first_vao,
+                first_vbo,
+                second_vao,
+                second_vbo,
+                program,
+            }
         }
     }
 
@@ -141,12 +138,12 @@ impl Application for App {
             let gl = &ctx.gl;
             gl.clear_color(0.2, 0.3, 0.3, 1.0);
             gl.clear(COLOR_BUFFER_BIT);
-            gl.use_program(self.program);
+            gl.use_program(Some(self.program));
 
-            gl.bind_vertex_array(self.first_vao);
+            gl.bind_vertex_array(Some(self.first_vao));
             gl.draw_arrays(TRIANGLES, 0, 3);
 
-            gl.bind_vertex_array(self.second_vao);
+            gl.bind_vertex_array(Some(self.second_vao));
             gl.draw_arrays(TRIANGLES, 0, 3);
             // gl.bind_vertex_array(None); // no need to unbind it every time
         }
@@ -162,25 +159,15 @@ impl Application for App {
     fn exit(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
         unsafe {
-            if let Some(program) = self.program {
-                gl.delete_program(program);
-            }
+            gl.delete_program(self.program);
 
-            if let Some(vertex_array) = self.first_vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.first_vao);
 
-            if let Some(buffer) = self.first_vbo {
-                gl.delete_buffer(buffer);
-            }
+            gl.delete_buffer(self.first_vbo);
 
-            if let Some(vertex_array) = self.second_vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.second_vao);
 
-            if let Some(buffer) = self.second_vbo {
-                gl.delete_buffer(buffer);
-            }
+            gl.delete_buffer(self.second_vbo);
         }
     }
 }

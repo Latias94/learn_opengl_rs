@@ -3,6 +3,7 @@ learn_opengl_rs.d.ts
 learn_opengl_rs.js
 learn_opengl_rs_bg.wasm
 learn_opengl_rs_bg.wasm.d.ts
+/web/resources
 
 .idea
 .vscode

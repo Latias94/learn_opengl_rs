@@ -1,14 +1,13 @@
 use crate::window::{run, Application, GLContext, WindowInitInfo};
-use chrono::Utc;
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_3_1() {
+pub async fn main_1_3_1() {
     let init_info = WindowInitInfo::builder()
         .title("Shaders Uniform".to_string())
         .build();
     unsafe {
-        run::<App>(init_info);
+        run::<App>(init_info).await;
     }
 }
 
@@ -18,20 +17,14 @@ const VERTICES: [f32; 9] = [
     0.0, 0.5, 0.0,
 ];
 
-#[derive(Default)]
 struct App {
-    vao: Option<VertexArray>,
-    vbo: Option<Buffer>,
-    program: Option<Program>,
-    start: chrono::DateTime<Utc>,
+    vao: VertexArray,
+    vbo: Buffer,
+    program: Program,
 }
 
 impl Application for App {
-    fn new(_ctx: &GLContext) -> Self {
-        Self::default()
-    }
-
-    fn init(&mut self, ctx: &GLContext) {
+    async fn new(ctx: &GLContext) -> Self {
         unsafe {
             let gl = &ctx.gl;
             let shader_version = ctx.suggested_shader_version;
@@ -78,10 +71,7 @@ impl Application for App {
             )
             .expect("Failed to create program");
 
-            self.program = Some(program);
-            self.vao = Some(vao);
-            self.vbo = Some(vbo);
-            self.start = Utc::now();
+            App { vao, vbo, program }
         }
     }
 
@@ -91,21 +81,16 @@ impl Application for App {
             gl.clear_color(0.2, 0.3, 0.3, 1.0);
             gl.clear(COLOR_BUFFER_BIT);
 
-            gl.use_program(self.program);
+            gl.use_program(Some(self.program));
 
-            let current = Utc::now();
-            let duration = current - self.start;
-            let time = duration.num_milliseconds() as f32 / 1000.0;
-            let green_value = (time.sin() / 2.0) + 0.5;
+            let green_value = (ctx.render_delta_time.sin() / 2.0) + 0.5;
 
-            let our_color = gl
-                .get_uniform_location(self.program.unwrap(), "ourColor")
-                .unwrap();
+            let our_color = gl.get_uniform_location(self.program, "ourColor").unwrap();
             gl.uniform_4_f32(Some(&our_color), 0.0, green_value, 0.0, 1.0);
 
             // seeing as we only have a single VAO there's no need to bind it every time,
             // but we'll do so to keep things a bit more organized
-            gl.bind_vertex_array(self.vao);
+            gl.bind_vertex_array(Some(self.vao));
             gl.draw_arrays(TRIANGLES, 0, 3);
         }
     }
@@ -120,17 +105,11 @@ impl Application for App {
     fn exit(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
         unsafe {
-            if let Some(program) = self.program {
-                gl.delete_program(program);
-            }
+            gl.delete_program(self.program);
 
-            if let Some(vertex_array) = self.vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.vao);
 
-            if let Some(buffer) = self.vbo {
-                gl.delete_buffer(buffer);
-            }
+            gl.delete_buffer(self.vbo);
         }
     }
 }

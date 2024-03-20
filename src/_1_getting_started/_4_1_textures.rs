@@ -4,12 +4,12 @@ use glow::*;
 use image::GenericImageView;
 use std::mem::size_of;
 
-pub fn main_1_4_1() {
+pub async fn main_1_4_1() {
     let init_info = WindowInitInfo::builder()
         .title("Textures".to_string())
         .build();
     unsafe {
-        run::<App>(init_info);
+        run::<App>(init_info).await;
     }
 }
 
@@ -25,14 +25,14 @@ const VERTICES: [f32; 32] = [
 const INDICES: [u32; 6] = [0, 1, 3, 1, 2, 3];
 
 struct App {
-    vao: Option<VertexArray>,
-    vbo: Option<Buffer>,
-    texture: Option<Texture>,
+    vao: VertexArray,
+    vbo: Buffer,
+    texture: Texture,
     shader: MyShader,
 }
 
 impl Application for App {
-    fn new(ctx: &GLContext) -> Self {
+    async fn new(ctx: &GLContext) -> Self {
         let gl = &ctx.gl;
         let shader = MyShader::new_from_source(
             gl,
@@ -42,17 +42,8 @@ impl Application for App {
             Some(ctx.suggested_shader_version),
         )
         .expect("Failed to create program");
-        Self {
-            shader,
-            vao: None,
-            vbo: None,
-            texture: None,
-        }
-    }
 
-    fn init(&mut self, ctx: &GLContext) {
         unsafe {
-            let gl = &ctx.gl;
             let vao = gl
                 .create_vertex_array()
                 .expect("Cannot create vertex array");
@@ -130,9 +121,12 @@ impl Application for App {
 
             gl.delete_buffer(ebo);
 
-            self.vao = Some(vao);
-            self.vbo = Some(vbo);
-            self.texture = Some(texture);
+            Self {
+                shader,
+                vao,
+                vbo,
+                texture,
+            }
         }
     }
 
@@ -142,13 +136,13 @@ impl Application for App {
             gl.clear_color(0.2, 0.3, 0.3, 1.0);
             gl.clear(COLOR_BUFFER_BIT);
 
-            gl.bind_texture(TEXTURE_2D, self.texture);
+            gl.bind_texture(TEXTURE_2D, Some(self.texture));
 
             self.shader.use_shader(gl);
 
             // seeing as we only have a single VAO there's no need to bind it every time,
             // but we'll do so to keep things a bit more organized
-            gl.bind_vertex_array(self.vao);
+            gl.bind_vertex_array(Some(self.vao));
             gl.draw_elements(
                 // mode, count, type, indices
                 TRIANGLES,    // mode
@@ -171,17 +165,11 @@ impl Application for App {
         unsafe {
             self.shader.delete(gl);
 
-            if let Some(vertex_array) = self.vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.vao);
 
-            if let Some(buffer) = self.vbo {
-                gl.delete_buffer(buffer);
-            }
+            gl.delete_buffer(self.vbo);
 
-            if let Some(texture) = self.texture {
-                gl.delete_texture(texture);
-            }
+            gl.delete_texture(self.texture);
         }
     }
 }

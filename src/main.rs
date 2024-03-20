@@ -13,5 +13,5 @@ fn main() {
     }
 
     let tutorial_id = &args[1];
-    run_tutorial(tutorial_id.to_string());
+    pollster::block_on(run_tutorial(tutorial_id.to_string()));
 }

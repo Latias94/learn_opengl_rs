@@ -15,9 +15,8 @@ pub struct Game<A: Application> {
     ctx: GLContext,
 }
 
-pub trait Application {
-    fn new(_ctx: &GLContext) -> Self;
-    fn init(&mut self, _ctx: &GLContext) {}
+pub trait Application: Sized {
+    async fn new(_ctx: &GLContext) -> Self;
     fn render(&mut self, _ctx: &GLContext) {}
     fn update(&mut self, _update_delta_time: f32) {}
     fn resize(&mut self, _ctx: &GLContext, _width: u32, _height: u32) {}
@@ -52,7 +51,7 @@ pub struct GLContext {
     pub render_delta_time: f32,
 }
 
-pub unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
+pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
     let width = init_info.width;
     let height = init_info.height;
     let title = init_info.title;
@@ -203,8 +202,7 @@ pub unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         render_delta_time: 0.0,
     };
 
-    let mut app = App::new(&ctx);
-    app.init(&ctx);
+    let app = App::new(&ctx).await;
 
     let game = Game {
         input: WinitInputHelper::new(),

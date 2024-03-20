@@ -5,12 +5,12 @@ use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub fn main_2_2_3() {
+pub async fn main_2_2_3() {
     let init_info = WindowInitInfo::builder()
         .title("Basic Lighting Exercise 1".to_string())
         .build();
     unsafe {
-        run::<App>(init_info);
+        run::<App>(init_info).await;
     }
 }
 
@@ -61,16 +61,16 @@ const VERTICES: [f32; 216] = [
 ];
 
 struct App {
-    cube_vao: Option<VertexArray>,
-    light_vao: Option<VertexArray>,
-    vbo: Option<Buffer>,
+    cube_vao: VertexArray,
+    light_vao: VertexArray,
+    vbo: Buffer,
     lighting_shader: MyShader,
     lighting_cube_shader: MyShader,
     camera: crate::camera::Camera,
 }
 
 impl Application for App {
-    fn new(ctx: &GLContext) -> Self {
+    async fn new(ctx: &GLContext) -> Self {
         let gl = &ctx.gl;
         let lighting_shader = MyShader::new_from_source(
             gl,
@@ -90,20 +90,8 @@ impl Application for App {
         .expect("Failed to create program");
         let camera_pos = glm::vec3(0.0, 0.0, 3.0);
         let camera = crate::camera::Camera::new_with_position(camera_pos);
-        Self {
-            cube_vao: None,
-            light_vao: None,
-            vbo: None,
-            lighting_shader,
-            lighting_cube_shader,
-            camera,
-        }
-    }
 
-    fn init(&mut self, ctx: &GLContext) {
         unsafe {
-            let gl = &ctx.gl;
-
             gl.enable(DEPTH_TEST);
 
             // first, configure the cube's VAO (and VBO)
@@ -139,9 +127,14 @@ impl Application for App {
             gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 6 * size_of::<f32>() as i32, 0);
             gl.enable_vertex_attrib_array(0);
 
-            self.cube_vao = Some(cube_vao);
-            self.light_vao = Some(light_vao);
-            self.vbo = Some(vbo);
+            Self {
+                cube_vao,
+                light_vao,
+                vbo,
+                lighting_shader,
+                lighting_cube_shader,
+                camera,
+            }
         }
     }
 
@@ -183,7 +176,7 @@ impl Application for App {
             let model = glm::Mat4::identity();
             self.lighting_shader.set_mat4(gl, "model", &model);
 
-            gl.bind_vertex_array(self.cube_vao);
+            gl.bind_vertex_array(Some(self.cube_vao));
             gl.draw_arrays(TRIANGLES, 0, 36);
 
             // draw the lamp object
@@ -196,7 +189,7 @@ impl Application for App {
             model = glm::scale(&model, &glm::vec3(0.2, 0.2, 0.2)); // a smaller cube
             self.lighting_cube_shader.set_mat4(gl, "model", &model);
 
-            gl.bind_vertex_array(self.light_vao);
+            gl.bind_vertex_array(Some(self.light_vao));
             gl.draw_arrays(TRIANGLES, 0, 36);
         }
     }
@@ -219,17 +212,11 @@ impl Application for App {
             self.lighting_shader.delete(gl);
             self.lighting_cube_shader.delete(gl);
 
-            if let Some(vertex_array) = self.cube_vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.cube_vao);
 
-            if let Some(vertex_array) = self.light_vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.light_vao);
 
-            if let Some(buffer) = self.vbo {
-                gl.delete_buffer(buffer);
-            }
+            gl.delete_buffer(self.vbo);
         }
     }
 }

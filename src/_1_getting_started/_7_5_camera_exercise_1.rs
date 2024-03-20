@@ -6,13 +6,13 @@ use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub fn main_1_7_5() {
+pub async fn main_1_7_5() {
     // See src/camera.rs for the camera implementation
     let init_info = WindowInitInfo::builder()
         .title("Camera Exercise 1".to_string())
         .build();
     unsafe {
-        run::<App>(init_info);
+        run::<App>(init_info).await;
     }
 }
 
@@ -79,16 +79,16 @@ const CUBE_POSITIONS: [glm::Vec3; 10] = [
 const CAMERA_UP: glm::Vec3 = glm::Vec3::new(0.0, 1.0, 0.0);
 
 struct App {
-    vao: Option<VertexArray>,
-    vbo: Option<Buffer>,
-    texture_1: Option<Texture>,
-    texture_2: Option<Texture>,
+    vao: VertexArray,
+    vbo: Buffer,
+    texture_1: Texture,
+    texture_2: Texture,
     shader: MyShader,
     camera: crate::camera::Camera,
 }
 
 impl Application for App {
-    fn new(ctx: &GLContext) -> Self {
+    async fn new(ctx: &GLContext) -> Self {
         let gl = &ctx.gl;
         let shader = MyShader::new_from_source(
             gl,
@@ -103,20 +103,8 @@ impl Application for App {
         let camera_pos = glm::vec3(0.0, 0.0, 3.0);
         let pitch = 0.0f32;
         let camera = crate::camera::Camera::new(camera_pos, CAMERA_UP, yaw, pitch);
-        Self {
-            shader,
-            vao: None,
-            vbo: None,
-            texture_1: None,
-            texture_2: None,
-            camera,
-        }
-    }
 
-    fn init(&mut self, ctx: &GLContext) {
         unsafe {
-            let gl = &ctx.gl;
-
             gl.enable(DEPTH_TEST);
 
             let vao = gl
@@ -200,17 +188,21 @@ impl Application for App {
             );
             gl.generate_mipmap(TEXTURE_2D);
 
-            self.shader.use_shader(gl);
-            self.shader.set_int(gl, "texture1", 0);
-            self.shader.set_int(gl, "texture2", 1);
+            shader.use_shader(gl);
+            shader.set_int(gl, "texture1", 0);
+            shader.set_int(gl, "texture2", 1);
 
             gl.bind_buffer(ARRAY_BUFFER, None);
             gl.bind_vertex_array(None);
 
-            self.vao = Some(vao);
-            self.vbo = Some(vbo);
-            self.texture_1 = Some(texture_1);
-            self.texture_2 = Some(texture_2);
+            Self {
+                vao,
+                vbo,
+                texture_1,
+                texture_2,
+                shader,
+                camera,
+            }
         }
     }
 
@@ -221,12 +213,12 @@ impl Application for App {
             gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
             gl.active_texture(TEXTURE0);
-            gl.bind_texture(TEXTURE_2D, self.texture_1);
+            gl.bind_texture(TEXTURE_2D, Some(self.texture_1));
 
             gl.active_texture(TEXTURE1);
-            gl.bind_texture(TEXTURE_2D, self.texture_2);
+            gl.bind_texture(TEXTURE_2D, Some(self.texture_2));
 
-            gl.bind_vertex_array(self.vao);
+            gl.bind_vertex_array(Some(self.vao));
             self.shader.use_shader(gl);
 
             let projection = glm::perspective(
@@ -278,21 +270,13 @@ impl Application for App {
         unsafe {
             self.shader.delete(gl);
 
-            if let Some(vertex_array) = self.vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.vao);
 
-            if let Some(buffer) = self.vbo {
-                gl.delete_buffer(buffer);
-            }
+            gl.delete_buffer(self.vbo);
 
-            if let Some(texture) = self.texture_1 {
-                gl.delete_texture(texture);
-            }
+            gl.delete_texture(self.texture_1);
 
-            if let Some(texture) = self.texture_2 {
-                gl.delete_texture(texture);
-            }
+            gl.delete_texture(self.texture_2);
         }
     }
 }

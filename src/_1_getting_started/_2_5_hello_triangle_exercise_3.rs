@@ -2,12 +2,12 @@ use crate::window::{run, Application, GLContext, WindowInitInfo};
 use glow::*;
 use std::mem::size_of;
 
-pub fn main_1_2_5() {
+pub async fn main_1_2_5() {
     let init_info = WindowInitInfo::builder()
         .title("Hello Triangle Exercise 3".to_string())
         .build();
     unsafe {
-        run::<App>(init_info);
+        run::<App>(init_info).await;
     }
 }
 
@@ -22,20 +22,15 @@ const VERTICES: [f32; 18] = [
     0.45, 0.5, 0.0, // top
 ];
 
-#[derive(Default)]
 struct App {
-    vao: Option<VertexArray>,
-    vbo: Option<Buffer>,
-    program_0: Option<Program>,
-    program_1: Option<Program>,
+    vao: VertexArray,
+    vbo: Buffer,
+    program_0: Program,
+    program_1: Program,
 }
 
 impl Application for App {
-    fn new(_ctx: &GLContext) -> Self {
-        Self::default()
-    }
-
-    fn init(&mut self, ctx: &GLContext) {
+    async fn new(ctx: &GLContext) -> Self {
         unsafe {
             let gl = &ctx.gl;
             let shader_version = ctx.suggested_shader_version;
@@ -96,10 +91,12 @@ impl Application for App {
             )
             .expect("Failed to create program");
 
-            self.program_0 = Some(program_0);
-            self.program_1 = Some(program_1);
-            self.vao = Some(vao);
-            self.vbo = Some(vbo);
+            Self {
+                vao,
+                vbo,
+                program_0,
+                program_1,
+            }
         }
     }
 
@@ -110,12 +107,12 @@ impl Application for App {
             gl.clear(COLOR_BUFFER_BIT);
             // seeing as we only have a single VAO there's no need to bind it every time,
             // but we'll do so to keep things a bit more organized
-            gl.bind_vertex_array(self.vao);
+            gl.bind_vertex_array(Some(self.vao));
 
-            gl.use_program(self.program_0);
+            gl.use_program(Some(self.program_0));
             gl.draw_arrays(TRIANGLES, 0, 3);
 
-            gl.use_program(self.program_1);
+            gl.use_program(Some(self.program_1));
             gl.draw_arrays(TRIANGLES, 3, 3);
         }
     }
@@ -130,21 +127,13 @@ impl Application for App {
     fn exit(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
         unsafe {
-            if let Some(program) = self.program_0 {
-                gl.delete_program(program);
-            }
+            gl.delete_program(self.program_0);
 
-            if let Some(program) = self.program_1 {
-                gl.delete_program(program);
-            }
+            gl.delete_program(self.program_1);
 
-            if let Some(vertex_array) = self.vao {
-                gl.delete_vertex_array(vertex_array);
-            }
+            gl.delete_vertex_array(self.vao);
 
-            if let Some(buffer) = self.vbo {
-                gl.delete_buffer(buffer);
-            }
+            gl.delete_buffer(self.vbo);
         }
     }
 }
