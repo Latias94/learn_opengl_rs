@@ -1,5 +1,5 @@
 use crate::shader::MyShader;
-use crate::window::{run, Application, GLContext, WindowInitInfo};
+use crate::window::{run, AppContext, Application, WindowInitInfo};
 use glow::*;
 use image::GenericImageView;
 use nalgebra_glm as glm;
@@ -88,14 +88,14 @@ struct App {
 }
 
 impl Application for App {
-    async unsafe fn new(ctx: &GLContext) -> Self {
-        let gl = &ctx.gl;
+    async unsafe fn new(ctx: &AppContext) -> Self {
+        let gl = &ctx.gl();
         let shader = MyShader::new_from_source(
             gl,
             // embedded shader
             include_str!("./shaders/6.1.coordinate_systems.vs"),
             include_str!("./shaders/5.1.transform.fs"),
-            Some(ctx.suggested_shader_version),
+            Some(ctx.suggested_shader_version()),
         )
         .expect("Failed to create program");
         // yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
@@ -203,8 +203,8 @@ impl Application for App {
         }
     }
 
-    unsafe fn render(&mut self, ctx: &GLContext) {
-        let gl = &ctx.gl;
+    unsafe fn render(&mut self, ctx: &AppContext) {
+        let gl = &ctx.gl();
         gl.clear_color(0.2, 0.3, 0.3, 1.0);
         gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
@@ -218,7 +218,7 @@ impl Application for App {
         self.shader.use_shader(gl);
 
         let projection = glm::perspective(
-            ctx.width as f32 / ctx.height as f32,
+            ctx.width() as f32 / ctx.height() as f32,
             self.camera.zoom().to_radians(),
             0.1,
             100.0,
@@ -238,18 +238,18 @@ impl Application for App {
         }
     }
 
-    unsafe fn resize(&mut self, ctx: &GLContext, width: u32, height: u32) {
-        let gl = &ctx.gl;
+    unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
+        let gl = &ctx.gl();
         gl.viewport(0, 0, width as i32, height as i32);
     }
 
-    unsafe fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
+    unsafe fn process_input(&mut self, _ctx: &AppContext, input: &WinitInputHelper) {
         self.camera.process_keyboard_with_input(input);
         self.camera.process_mouse_with_input(input, true);
     }
 
-    unsafe fn exit(&mut self, ctx: &GLContext) {
-        let gl = &ctx.gl;
+    unsafe fn exit(&mut self, ctx: &AppContext) {
+        let gl = &ctx.gl();
 
         self.shader.delete(gl);
 

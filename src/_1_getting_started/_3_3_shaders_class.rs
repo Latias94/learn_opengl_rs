@@ -1,5 +1,5 @@
 use crate::shader::MyShader;
-use crate::window::{run, Application, GLContext, WindowInitInfo};
+use crate::window::{run, AppContext, Application, WindowInitInfo};
 use glow::*;
 use std::mem::size_of;
 
@@ -26,14 +26,14 @@ struct App {
 }
 
 impl Application for App {
-    async unsafe fn new(ctx: &GLContext) -> Self {
-        let gl = &ctx.gl;
+    async unsafe fn new(ctx: &AppContext) -> Self {
+        let gl = &ctx.gl();
         let shader = MyShader::new_from_source(
             gl,
             // embedded shader
             include_str!("./shaders/3.3.shader.vs"),
             include_str!("./shaders/3.3.shader.fs"),
-            Some(ctx.suggested_shader_version),
+            Some(ctx.suggested_shader_version()),
         )
         .expect("Failed to create program");
 
@@ -70,8 +70,8 @@ impl Application for App {
         Self { shader, vao, vbo }
     }
 
-    unsafe fn render(&mut self, ctx: &GLContext) {
-        let gl = &ctx.gl;
+    unsafe fn render(&mut self, ctx: &AppContext) {
+        let gl = &ctx.gl();
         gl.clear_color(0.2, 0.3, 0.3, 1.0);
         gl.clear(COLOR_BUFFER_BIT);
 
@@ -83,13 +83,13 @@ impl Application for App {
         gl.draw_arrays(TRIANGLES, 0, 3);
     }
 
-    unsafe fn resize(&mut self, ctx: &GLContext, width: u32, height: u32) {
-        let gl = &ctx.gl;
+    unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
+        let gl = &ctx.gl();
         gl.viewport(0, 0, width as i32, height as i32);
     }
 
-    unsafe fn exit(&mut self, ctx: &GLContext) {
-        let gl = &ctx.gl;
+    unsafe fn exit(&mut self, ctx: &AppContext) {
+        let gl = &ctx.gl();
 
         self.shader.delete(gl);
 
