@@ -51,6 +51,7 @@ impl Texture {
             gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, REPEAT as i32);
             gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MIN_FILTER, LINEAR_MIPMAP_LINEAR as i32);
             gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, LINEAR as i32);
+            gl.bind_texture(TEXTURE_2D, None);
 
             texture
         };
@@ -66,6 +67,25 @@ impl Texture {
     ) -> anyhow::Result<Self> {
         let img = image::load_from_memory(bytes).expect("Failed to load texture from bytes");
         Self::from_image(gl, &img, file_name, ty)
+    }
+
+    pub fn set_wrap_mode(&self, gl: &Context, wrap_s: i32, wrap_t: i32) {
+        unsafe {
+            gl.bind_texture(TEXTURE_2D, Some(self.raw));
+            gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, wrap_s);
+            gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, wrap_t);
+            gl.bind_texture(TEXTURE_2D, None);
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn set_filter_mode(&self, gl: &Context, min_filter: i32, mag_filter: i32) {
+        unsafe {
+            gl.bind_texture(TEXTURE_2D, Some(self.raw));
+            gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MIN_FILTER, min_filter);
+            gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, mag_filter);
+            gl.bind_texture(TEXTURE_2D, None);
+        }
     }
 
     pub fn ty(&self) -> TextureType {

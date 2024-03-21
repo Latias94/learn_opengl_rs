@@ -7,9 +7,9 @@ use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub async unsafe fn main_4_1_1() {
+pub async unsafe fn main_4_3_1() {
     let init_info = WindowInitInfo::builder()
-        .title("Depth Testing".to_string())
+        .title("Blending Discard".to_string())
         .build();
     unsafe {
         run::<App>(init_info).await;
@@ -75,6 +75,26 @@ const PLANE_VERTICES: [f32; 30] = [
     5.0, -0.5, -5.0, 2.0, 2.0
 ];
 
+#[rustfmt::skip]
+const TRANSPARENT_VERTICES: [f32; 30] = [
+    // positions  // texture Coords
+    0.0, 0.5, 0.0, 0.0, 1.0,
+    0.0, -0.5, 0.0, 0.0, 0.0,
+    1.0, -0.5, 0.0, 1.0, 0.0,
+
+    0.0, 0.5, 0.0, 0.0, 1.0,
+    1.0, -0.5, 0.0, 1.0, 0.0,
+    1.0, 0.5, 0.0 , 1.0, 1.0
+];
+
+const VEGETATION_POSITION: [glm::Vec3; 5] = [
+    glm::Vec3::new(-1.5, 0.0, -0.48),
+    glm::Vec3::new(1.5, 0.0, 0.51),
+    glm::Vec3::new(0.0, 0.0, 0.7),
+    glm::Vec3::new(-0.3, 0.0, -2.3),
+    glm::Vec3::new(0.5, 0.0, -0.6),
+];
+
 struct App {
     cube_vbo: Buffer,
     cube_vao: VertexArray,
@@ -83,6 +103,10 @@ struct App {
     plane_vbo: Buffer,
     plane_vao: VertexArray,
     plane_texture: texture::Texture,
+
+    vegetation_vbo: Buffer,
+    vegetation_vao: VertexArray,
+    vegetation_texture: texture::Texture,
 
     shader: MyShader,
     camera: Camera,
@@ -95,7 +119,7 @@ impl Application for App {
         let shader = MyShader::new_from_source(
             gl,
             include_str!("shaders/_1_1_depth_testing.vs"),
-            include_str!("shaders/_1_1_depth_testing.fs"),
+            include_str!("shaders/_3_1_blending.fs"),
             Some(ctx.suggested_shader_version()),
         )
         .expect("Failed to create program");
@@ -103,8 +127,6 @@ impl Application for App {
         let camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
 
         gl.enable(DEPTH_TEST);
-        // gl.depth_func(LESS);
-        gl.depth_func(ALWAYS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
         //  cube vao
         let cube_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
@@ -152,6 +174,32 @@ impl Application for App {
             (3 * size_of::<f32>()) as i32,
         );
         gl.enable_vertex_attrib_array(1);
+
+        // vegetation vao
+        let vegetation_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
+        gl.bind_buffer(ARRAY_BUFFER, Some(vegetation_vbo));
+        gl.buffer_data_u8_slice(
+            ARRAY_BUFFER,
+            bytemuck::cast_slice(&TRANSPARENT_VERTICES),
+            STATIC_DRAW,
+        );
+
+        let vegetation_vao = gl
+            .create_vertex_array()
+            .expect("Cannot create vertex array");
+        gl.bind_vertex_array(Some(vegetation_vao));
+        gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 5 * size_of::<f32>() as i32, 0);
+        gl.enable_vertex_attrib_array(0);
+        gl.vertex_attrib_pointer_f32(
+            1,
+            2,
+            FLOAT,
+            false,
+            5 * size_of::<f32>() as i32,
+            (3 * size_of::<f32>()) as i32,
+        );
+        gl.enable_vertex_attrib_array(1);
+
         gl.bind_vertex_array(None);
 
         // load texture
@@ -161,6 +209,10 @@ impl Application for App {
         let plane_texture = resources::load_texture(gl, "textures/metal.png")
             .await
             .expect("Failed to load texture");
+        let vegetation_texture = resources::load_texture(gl, "textures/grass.png")
+            .await
+            .expect("Failed to load texture");
+        vegetation_texture.set_wrap_mode(gl, REPEAT as i32, REPEAT as i32);
 
         shader.use_shader(gl);
         shader.set_int(gl, "texture1", 0);
@@ -172,6 +224,9 @@ impl Application for App {
             plane_vbo,
             plane_vao,
             plane_texture,
+            vegetation_vbo,
+            vegetation_vao,
+            vegetation_texture,
             shader,
             camera,
         }
@@ -213,6 +268,15 @@ impl Application for App {
         self.shader.set_mat4(gl, "model", &model);
         gl.draw_arrays(TRIANGLES, 0, 6);
 
+        // vegetation
+        gl.bind_vertex_array(Some(self.vegetation_vao));
+        self.vegetation_texture.bind(gl, 0);
+        for &position in VEGETATION_POSITION.iter() {
+            let model = glm::translate(&glm::Mat4::identity(), &position);
+            self.shader.set_mat4(gl, "model", &model);
+            gl.draw_arrays(TRIANGLES, 0, 6);
+        }
+
         gl.bind_vertex_array(None);
     }
 
@@ -230,13 +294,18 @@ impl Application for App {
         let gl = ctx.gl();
 
         self.shader.delete(gl);
+        unsafe {
+            gl.delete_buffer(self.cube_vbo);
+            gl.delete_vertex_array(self.cube_vao);
+            self.cube_texture.delete(gl);
 
-        gl.delete_buffer(self.cube_vbo);
-        gl.delete_vertex_array(self.cube_vao);
-        self.cube_texture.delete(gl);
+            gl.delete_buffer(self.plane_vbo);
+            gl.delete_vertex_array(self.plane_vao);
+            self.plane_texture.delete(gl);
 
-        gl.delete_buffer(self.plane_vbo);
-        gl.delete_vertex_array(self.plane_vao);
-        self.plane_texture.delete(gl);
+            gl.delete_buffer(self.vegetation_vbo);
+            gl.delete_vertex_array(self.vegetation_vao);
+            self.vegetation_texture.delete(gl);
+        }
     }
 }

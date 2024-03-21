@@ -90,7 +90,7 @@ struct App {
 
 impl Application for App {
     async unsafe fn new(ctx: &AppContext) -> Self {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
 
         let shader = MyShader::new_from_source(
             gl,
@@ -178,7 +178,7 @@ impl Application for App {
     }
 
     unsafe fn render(&mut self, ctx: &AppContext) {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
 
         gl.clear_color(0.1, 0.1, 0.1, 1.0);
         gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
@@ -217,7 +217,7 @@ impl Application for App {
     }
 
     unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
         gl.viewport(0, 0, width as i32, height as i32);
     }
 
@@ -227,17 +227,16 @@ impl Application for App {
     }
 
     unsafe fn exit(&mut self, ctx: &AppContext) {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
 
         self.shader.delete(gl);
-        unsafe {
-            gl.delete_buffer(self.cube_vbo);
-            gl.delete_vertex_array(self.cube_vao);
-            self.cube_texture.delete(gl);
 
-            gl.delete_buffer(self.plane_vbo);
-            gl.delete_vertex_array(self.plane_vao);
-            self.plane_texture.delete(gl);
-        }
+        gl.delete_buffer(self.cube_vbo);
+        gl.delete_vertex_array(self.cube_vao);
+        self.cube_texture.delete(gl);
+
+        gl.delete_buffer(self.plane_vbo);
+        gl.delete_vertex_array(self.plane_vao);
+        self.plane_texture.delete(gl);
     }
 }
