@@ -328,7 +328,6 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 }
 
                 app.process_input(ctx, input);
-                return;
             }
         },
     )

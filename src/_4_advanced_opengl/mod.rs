@@ -9,3 +9,6 @@ pub use _2_1_stencil_testing::main_4_2_1;
 
 mod _3_1_blending_discard;
 pub use _3_1_blending_discard::main_4_3_1;
+
+mod _3_2_blending_sort;
+pub use _3_2_blending_sort::main_4_3_2;

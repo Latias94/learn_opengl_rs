@@ -36,6 +36,10 @@ camera control etc.
 
 ### [4. Advanced OpenGL](https://github.com/Latias94/learn_opengl_rs/tree/main/src/_4_advanced_opengl)
 
+<p align="left">
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/4_3_2.png" width="32%" alt="4_3_2" />
+</p>
+
 ## Notes
 
 - The function to load models and textures is implemented in `resources.rs`. Basically `build.rs` file will copy all

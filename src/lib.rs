@@ -80,6 +80,7 @@ pub async unsafe fn run_tutorial(tutorial_id: String) {
         "4_1_2" => main_4_1_2().await,
         "4_2_1" => main_4_2_1().await,
         "4_3_1" => main_4_3_1().await,
+        "4_3_2" => main_4_3_2().await,
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }
 }
