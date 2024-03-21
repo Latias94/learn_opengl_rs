@@ -7,9 +7,9 @@ use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub async unsafe fn main_4_1_1() {
+pub async unsafe fn main_4_2_1() {
     let init_info = WindowInitInfo::builder()
-        .title("Depth Testing".to_string())
+        .title("Stencil Testing".to_string())
         .build();
     unsafe {
         run::<App>(init_info).await;
@@ -85,6 +85,7 @@ struct App {
     plane_texture: texture::Texture,
 
     shader: MyShader,
+    shader_single_color: MyShader,
     camera: Camera,
 }
 
@@ -99,12 +100,21 @@ impl Application for App {
             Some(ctx.suggested_shader_version()),
         )
         .expect("Failed to create program");
+        let shader_single_color = MyShader::new_from_source(
+            gl,
+            include_str!("shaders/_1_1_depth_testing.vs"),
+            include_str!("shaders/_2_1_stencil_single_color.fs"),
+            Some(ctx.suggested_shader_version()),
+        )
+        .expect("Failed to create program");
 
         let camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
 
         gl.enable(DEPTH_TEST);
-        // gl.depth_func(LESS);
-        gl.depth_func(ALWAYS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+        gl.depth_func(LESS);
+        gl.enable(STENCIL_TEST);
+        gl.stencil_func(NOTEQUAL, 1, 0xFF);
+        gl.stencil_op(KEEP, KEEP, REPLACE);
 
         //  cube vao
         let cube_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
@@ -173,6 +183,7 @@ impl Application for App {
             plane_vao,
             plane_texture,
             shader,
+            shader_single_color,
             camera,
         }
     }
@@ -181,9 +192,9 @@ impl Application for App {
         let gl = &ctx.gl();
 
         gl.clear_color(0.1, 0.1, 0.1, 1.0);
-        gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
+        gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT | STENCIL_BUFFER_BIT);
 
-        self.shader.use_shader(gl);
+        // set uniforms
         let projection = glm::perspective(
             ctx.width() as f32 / ctx.height() as f32,
             self.camera.zoom().to_radians(),
@@ -191,8 +202,30 @@ impl Application for App {
             100.0,
         );
         let view = self.camera.view_matrix();
+
+        self.shader_single_color.use_shader(gl);
+        self.shader_single_color
+            .set_mat4(gl, "projection", &projection);
+        self.shader_single_color.set_mat4(gl, "view", &view);
+
+        self.shader.use_shader(gl);
         self.shader.set_mat4(gl, "projection", &projection);
         self.shader.set_mat4(gl, "view", &view);
+
+        // draw plane as normal, but don't write the plane to the stencil buffer,
+        // we only care about the cubes. We set its mask to 0x00 to not write to the stencil buffer.
+        gl.stencil_mask(0x00);
+        // plane
+        gl.bind_vertex_array(Some(self.plane_vao));
+        self.plane_texture.bind(gl, 0);
+        let model = glm::Mat4::identity();
+        self.shader.set_mat4(gl, "model", &model);
+        gl.draw_arrays(TRIANGLES, 0, 6);
+
+        // 1st. render pass, draw objects as normal, writing to the stencil buffer
+        // --------------------------------------------------------------------
+        gl.stencil_func(ALWAYS, 1, 0xFF);
+        gl.stencil_mask(0xFF);
 
         // cubes
         gl.bind_vertex_array(Some(self.cube_vao));
@@ -206,14 +239,34 @@ impl Application for App {
         self.shader.set_mat4(gl, "model", &model);
         gl.draw_arrays(TRIANGLES, 0, 36);
 
-        // plane
-        gl.bind_vertex_array(Some(self.plane_vao));
-        self.plane_texture.bind(gl, 0);
-        let model = glm::Mat4::identity();
-        self.shader.set_mat4(gl, "model", &model);
-        gl.draw_arrays(TRIANGLES, 0, 6);
+        // 2nd. render pass: now draw slightly scaled versions of the objects, this time disabling stencil writing.
+        // Because the stencil buffer is now filled with several 1s. The parts of the buffer that are 1 are not drawn, thus only drawing
+        // the objects' size differences, making it look like borders.
+        // -----------------------------------------------------------------------------------------------------------------------------
+        gl.stencil_func(NOTEQUAL, 1, 0xFF);
+        gl.stencil_mask(0x00);
+        gl.disable(DEPTH_TEST);
+
+        self.shader_single_color.use_shader(gl);
+        let scale = 1.1;
+        gl.bind_vertex_array(Some(self.cube_vao));
+        self.cube_texture.bind(gl, 0);
+
+        let mut model = glm::translate(&glm::Mat4::identity(), &glm::vec3(-1.0, 0.0, -1.0));
+        model = glm::scale(&model, &glm::vec3(scale, scale, scale));
+        self.shader_single_color.set_mat4(gl, "model", &model);
+        gl.draw_arrays(TRIANGLES, 0, 36);
+
+        let mut model = glm::translate(&glm::Mat4::identity(), &glm::vec3(2.0, 0.0, 0.0));
+        model = glm::scale(&model, &glm::vec3(scale, scale, scale));
+        self.shader_single_color.set_mat4(gl, "model", &model);
+        gl.draw_arrays(TRIANGLES, 0, 36);
 
         gl.bind_vertex_array(None);
+
+        gl.stencil_mask(0xFF);
+        gl.stencil_func(ALWAYS, 0, 0xFF);
+        gl.enable(DEPTH_TEST);
     }
 
     unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {

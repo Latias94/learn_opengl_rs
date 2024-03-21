@@ -7,9 +7,9 @@ use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub async unsafe fn main_4_1_1() {
+pub async unsafe fn main_4_1_2() {
     let init_info = WindowInitInfo::builder()
-        .title("Depth Testing".to_string())
+        .title("Depth Testing View".to_string())
         .build();
     unsafe {
         run::<App>(init_info).await;
@@ -95,7 +95,7 @@ impl Application for App {
         let shader = MyShader::new_from_source(
             gl,
             include_str!("shaders/_1_1_depth_testing.vs"),
-            include_str!("shaders/_1_1_depth_testing.fs"),
+            include_str!("shaders/_1_2_depth_testing.fs"),
             Some(ctx.suggested_shader_version()),
         )
         .expect("Failed to create program");
@@ -103,8 +103,8 @@ impl Application for App {
         let camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
 
         gl.enable(DEPTH_TEST);
-        // gl.depth_func(LESS);
-        gl.depth_func(ALWAYS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+        gl.depth_func(LESS);
+        // gl.depth_func(ALWAYS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
         //  cube vao
         let cube_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
@@ -163,7 +163,7 @@ impl Application for App {
             .expect("Failed to load texture");
 
         shader.use_shader(gl);
-        shader.set_int(gl, "texture1", 0);
+        // shader.set_int(gl, "texture1", 0);
 
         Self {
             cube_vbo,
