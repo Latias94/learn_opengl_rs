@@ -10,11 +10,13 @@ mod _1_getting_started;
 mod _2_lighting;
 mod _3_model_loading;
 mod _4_advanced_opengl;
+mod _9_testbed;
 
 use _1_getting_started::*;
 use _2_lighting::*;
 use _3_model_loading::*;
 use _4_advanced_opengl::*;
+use _9_testbed::*;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -77,6 +79,10 @@ pub async unsafe fn run_tutorial(tutorial_id: String) {
         "2_6_2" => main_2_6_2().await,
         "3_1_1" => main_3_1_1().await,
         "4_1_1" => main_4_1_1().await,
+        "4_1_2" => main_4_1_2().await,
+        "4_2_1" => main_4_2_1().await,
+        #[cfg(not(target_arch = "wasm32"))]
+        "9_1_1" => main_9_1_1().await,
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }
 }

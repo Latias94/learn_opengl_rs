@@ -1,5 +1,5 @@
+use crate::resources;
 use glow::{Context, HasContext, Program, FRAGMENT_SHADER, VERTEX_SHADER};
-use std::path::Path;
 
 pub struct MyShader {
     program: Program,
@@ -15,16 +15,18 @@ pub enum ShaderType {
 
 impl MyShader {
     #[allow(dead_code)]
-    pub fn new<P: AsRef<Path>>(
+    pub async fn new(
         gl: &Context,
-        vertex_path: P,
-        fragment_path: P,
+        vertex_path: &str,
+        fragment_path: &str,
         shader_version: Option<&str>,
     ) -> Result<Self, String> {
-        let vertex_shader =
-            std::fs::read_to_string(vertex_path).expect("Failed to read vertex shader");
-        let fragment_shader =
-            std::fs::read_to_string(fragment_path).expect("Failed to read fragment shader");
+        let vertex_shader = resources::load_string(vertex_path)
+            .await
+            .expect("Failed to load vertex shader");
+        let fragment_shader = resources::load_string(fragment_path)
+            .await
+            .expect("Failed to load fragment shader");
 
         Self::new_from_source(gl, &vertex_shader, &fragment_shader, shader_version)
     }
