@@ -1,7 +1,7 @@
 use crate::shader::MyShader;
 use crate::window::{run, AppContext, AppState, Application, WindowInitInfo};
+use crate::{resources, texture};
 use glow::*;
-use image::GenericImageView;
 use std::mem::size_of;
 use std::time::Duration;
 use winit::keyboard::KeyCode;
@@ -28,8 +28,8 @@ const INDICES: [u32; 6] = [0, 1, 3, 1, 2, 3];
 struct App {
     vao: VertexArray,
     vbo: Buffer,
-    texture_1: Texture,
-    texture_2: Texture,
+    texture_1: texture::Texture,
+    texture_2: texture::Texture,
     shader: MyShader,
     mix_value: f32,
 }
@@ -39,7 +39,7 @@ impl Application for App {
         #[cfg(target_arch = "wasm32")]
         log::info!("Not implemented for web yet.");
 
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
         let shader = MyShader::new_from_source(
             gl,
             // embedded shader
@@ -91,65 +91,15 @@ impl Application for App {
 
         // texture 1
         // ---------
-        let texture_1 = gl.create_texture().expect("Cannot create texture");
-        gl.bind_texture(TEXTURE_2D, Some(texture_1));
-        // set the texture wrapping parameters
-        // set texture wrapping to GL_REPEAT (default wrapping method)
-        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, REPEAT as i32);
-        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, REPEAT as i32);
-        // set texture filtering parameters
-        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MIN_FILTER, LINEAR_MIPMAP_LINEAR as i32);
-        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, LINEAR as i32);
-
-        // load image, create texture and generate mipmaps
-        // webgl doesn't support loading image from file, so we use include_bytes! to load image
-        // `flipv()` to flip loaded texture's on the y-axis.
-        let img = image::load_from_memory(include_bytes!("../../resources/textures/container.jpg"))
-            .expect("Failed to load image")
-            .flipv();
-        let (width, height) = img.dimensions();
-        let img_data = img.to_rgb8().into_raw();
-        gl.tex_image_2d(
-            // target, level, internal_format, width, height, border, format, type, pixels
-            TEXTURE_2D,
-            0,
-            RGB as i32,
-            width as i32,
-            height as i32,
-            0,
-            RGB,
-            UNSIGNED_BYTE,
-            Some(&img_data),
-        );
-        gl.generate_mipmap(TEXTURE_2D);
+        let texture_1 = resources::load_texture(gl, "textures/container.jpg")
+            .await
+            .expect("Failed to load image");
 
         // texture 2
         // ---------
-        let texture_2 = gl.create_texture().expect("Cannot create texture");
-        gl.bind_texture(TEXTURE_2D, Some(texture_2));
-        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, REPEAT as i32);
-        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, REPEAT as i32);
-        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MIN_FILTER, LINEAR_MIPMAP_LINEAR as i32);
-        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, LINEAR as i32);
-
-        let img =
-            image::load_from_memory(include_bytes!("../../resources/textures/awesomeface.png"))
-                .expect("Failed to load image")
-                .flipv();
-        let (width, height) = img.dimensions();
-        let img_data = img.to_rgb8().into_raw();
-        gl.tex_image_2d(
-            TEXTURE_2D,
-            0,
-            RGB as i32,
-            width as i32,
-            height as i32,
-            0,
-            RGB,
-            UNSIGNED_BYTE,
-            Some(&img_data),
-        );
-        gl.generate_mipmap(TEXTURE_2D);
+        let texture_2 = resources::load_texture(gl, "textures/awesomeface.png")
+            .await
+            .expect("Failed to load image");
 
         // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
         // -------------------------------------------------------------------------------------------
@@ -186,15 +136,12 @@ impl Application for App {
     }
 
     unsafe fn render(&mut self, ctx: &AppContext) {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
         gl.clear_color(0.2, 0.3, 0.3, 1.0);
         gl.clear(COLOR_BUFFER_BIT);
 
-        gl.active_texture(TEXTURE0);
-        gl.bind_texture(TEXTURE_2D, Some(self.texture_1));
-
-        gl.active_texture(TEXTURE1);
-        gl.bind_texture(TEXTURE_2D, Some(self.texture_2));
+        self.texture_1.bind(gl, 0);
+        self.texture_2.bind(gl, 1);
 
         self.shader.use_shader(gl);
         self.shader.set_float(gl, "mixValue", self.mix_value);
@@ -206,7 +153,7 @@ impl Application for App {
     }
 
     unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
         gl.viewport(0, 0, width as i32, height as i32);
     }
     unsafe fn process_input(&mut self, _ctx: &AppContext, input: &WinitInputHelper) {
@@ -226,16 +173,14 @@ impl Application for App {
     }
 
     unsafe fn exit(&mut self, ctx: &AppContext) {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
 
         self.shader.delete(gl);
 
         gl.delete_vertex_array(self.vao);
-
         gl.delete_buffer(self.vbo);
 
-        gl.delete_texture(self.texture_1);
-
-        gl.delete_texture(self.texture_2);
+        self.texture_1.delete(gl);
+        self.texture_2.delete(gl);
     }
 }

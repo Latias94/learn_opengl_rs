@@ -26,6 +26,7 @@ impl Texture {
         file_name: &str,
         ty: TextureType,
     ) -> anyhow::Result<Self> {
+        let img = img.flipv();
         let (width, height) = img.dimensions();
         let data = img.to_rgba8();
         let raw = unsafe {
