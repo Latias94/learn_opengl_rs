@@ -2,7 +2,7 @@ const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
 
 // window functions will move to `window.rs`
-pub async fn main_1_1_1() {
+pub async unsafe fn main_1_1_1() {
     // Create a context from a WebGL2 context on wasm32 targets
     #[cfg(target_arch = "wasm32")]
     let (_gl, _shader_version, _window, _event_loop) = {

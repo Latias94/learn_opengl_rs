@@ -16,12 +16,12 @@ pub struct Game<A: Application> {
 }
 
 pub trait Application: Sized {
-    async fn new(_ctx: &GLContext) -> Self;
-    fn render(&mut self, _ctx: &GLContext) {}
-    fn update(&mut self, _update_delta_time: f32) {}
-    fn resize(&mut self, _ctx: &GLContext, _width: u32, _height: u32) {}
-    fn process_input(&mut self, _ctx: &GLContext, _input: &WinitInputHelper) {}
-    fn exit(&mut self, _ctx: &GLContext) {}
+    async unsafe fn new(_ctx: &GLContext) -> Self;
+    unsafe fn render(&mut self, _ctx: &GLContext) {}
+    unsafe fn update(&mut self, _update_delta_time: f32) {}
+    unsafe fn resize(&mut self, _ctx: &GLContext, _width: u32, _height: u32) {}
+    unsafe fn process_input(&mut self, _ctx: &GLContext, _input: &WinitInputHelper) {}
+    unsafe fn exit(&mut self, _ctx: &GLContext) {}
 }
 
 #[derive(TypedBuilder, Debug, Clone, PartialEq, Eq, Hash)]

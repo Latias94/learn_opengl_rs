@@ -19,8 +19,9 @@ use _4_advanced_opengl::*;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
+#[allow(clippy::missing_safety_doc)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
-pub async fn run_tutorial(tutorial_id: String) {
+pub async unsafe fn run_tutorial(tutorial_id: String) {
     log::info!("Running tutorial {}", tutorial_id);
     match tutorial_id.as_str() {
         "1_1_1" => main_1_1_1().await,

@@ -7,7 +7,7 @@ use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub async fn main_4_1_1() {
+pub async unsafe fn main_4_1_1() {
     let init_info = WindowInitInfo::builder()
         .title("Depth Testing".to_string())
         .build();
@@ -89,7 +89,7 @@ struct App {
 }
 
 impl Application for App {
-    async fn new(ctx: &GLContext) -> Self {
+    async unsafe fn new(ctx: &GLContext) -> Self {
         let gl = &ctx.gl;
 
         let shader = MyShader::new_from_source(
@@ -102,90 +102,86 @@ impl Application for App {
 
         let camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
 
-        unsafe {
-            gl.enable(DEPTH_TEST);
-            // gl.depth_func(LESS);
-            gl.depth_func(ALWAYS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+        gl.enable(DEPTH_TEST);
+        // gl.depth_func(LESS);
+        gl.depth_func(ALWAYS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
-            //  cube vao
-            let cube_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
-            gl.bind_buffer(ARRAY_BUFFER, Some(cube_vbo));
-            gl.buffer_data_u8_slice(ARRAY_BUFFER, bytemuck::cast_slice(&VERTICES), STATIC_DRAW);
+        //  cube vao
+        let cube_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
+        gl.bind_buffer(ARRAY_BUFFER, Some(cube_vbo));
+        gl.buffer_data_u8_slice(ARRAY_BUFFER, bytemuck::cast_slice(&VERTICES), STATIC_DRAW);
 
-            let cube_vao = gl
-                .create_vertex_array()
-                .expect("Cannot create vertex array");
-            gl.bind_vertex_array(Some(cube_vao));
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 5 * size_of::<f32>() as i32, 0);
-            gl.enable_vertex_attrib_array(0);
-            gl.vertex_attrib_pointer_f32(
-                1,
-                2,
-                FLOAT,
-                false,
-                5 * size_of::<f32>() as i32,
-                (3 * size_of::<f32>()) as i32,
-            );
-            gl.enable_vertex_attrib_array(1);
-            gl.bind_vertex_array(None);
+        let cube_vao = gl
+            .create_vertex_array()
+            .expect("Cannot create vertex array");
+        gl.bind_vertex_array(Some(cube_vao));
+        gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 5 * size_of::<f32>() as i32, 0);
+        gl.enable_vertex_attrib_array(0);
+        gl.vertex_attrib_pointer_f32(
+            1,
+            2,
+            FLOAT,
+            false,
+            5 * size_of::<f32>() as i32,
+            (3 * size_of::<f32>()) as i32,
+        );
+        gl.enable_vertex_attrib_array(1);
+        gl.bind_vertex_array(None);
 
-            // plane vao
-            let plane_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
-            gl.bind_buffer(ARRAY_BUFFER, Some(plane_vbo));
-            gl.buffer_data_u8_slice(
-                ARRAY_BUFFER,
-                bytemuck::cast_slice(&PLANE_VERTICES),
-                STATIC_DRAW,
-            );
+        // plane vao
+        let plane_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
+        gl.bind_buffer(ARRAY_BUFFER, Some(plane_vbo));
+        gl.buffer_data_u8_slice(
+            ARRAY_BUFFER,
+            bytemuck::cast_slice(&PLANE_VERTICES),
+            STATIC_DRAW,
+        );
 
-            let plane_vao = gl
-                .create_vertex_array()
-                .expect("Cannot create vertex array");
-            gl.bind_vertex_array(Some(plane_vao));
-            gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 5 * size_of::<f32>() as i32, 0);
-            gl.enable_vertex_attrib_array(0);
-            gl.vertex_attrib_pointer_f32(
-                1,
-                2,
-                FLOAT,
-                false,
-                5 * size_of::<f32>() as i32,
-                (3 * size_of::<f32>()) as i32,
-            );
-            gl.enable_vertex_attrib_array(1);
-            gl.bind_vertex_array(None);
+        let plane_vao = gl
+            .create_vertex_array()
+            .expect("Cannot create vertex array");
+        gl.bind_vertex_array(Some(plane_vao));
+        gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 5 * size_of::<f32>() as i32, 0);
+        gl.enable_vertex_attrib_array(0);
+        gl.vertex_attrib_pointer_f32(
+            1,
+            2,
+            FLOAT,
+            false,
+            5 * size_of::<f32>() as i32,
+            (3 * size_of::<f32>()) as i32,
+        );
+        gl.enable_vertex_attrib_array(1);
+        gl.bind_vertex_array(None);
 
-            // load texture
-            let cube_texture = resources::load_texture(gl, "textures/marble.jpg")
-                .await
-                .expect("Failed to load texture");
-            let plane_texture = resources::load_texture(gl, "textures/metal.png")
-                .await
-                .expect("Failed to load texture");
+        // load texture
+        let cube_texture = resources::load_texture(gl, "textures/marble.jpg")
+            .await
+            .expect("Failed to load texture");
+        let plane_texture = resources::load_texture(gl, "textures/metal.png")
+            .await
+            .expect("Failed to load texture");
 
-            shader.use_shader(gl);
-            shader.set_int(gl, "texture1", 0);
+        shader.use_shader(gl);
+        shader.set_int(gl, "texture1", 0);
 
-            Self {
-                cube_vbo,
-                cube_vao,
-                cube_texture,
-                plane_vbo,
-                plane_vao,
-                plane_texture,
-                shader,
-                camera,
-            }
+        Self {
+            cube_vbo,
+            cube_vao,
+            cube_texture,
+            plane_vbo,
+            plane_vao,
+            plane_texture,
+            shader,
+            camera,
         }
     }
 
-    fn render(&mut self, ctx: &GLContext) {
+    unsafe fn render(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
 
-        unsafe {
-            gl.clear_color(0.1, 0.1, 0.1, 1.0);
-            gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
-        }
+        gl.clear_color(0.1, 0.1, 0.1, 1.0);
+        gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
         self.shader.use_shader(gl);
         let projection = glm::perspective(
@@ -222,19 +218,17 @@ impl Application for App {
         }
     }
 
-    fn resize(&mut self, ctx: &GLContext, width: u32, height: u32) {
-        unsafe {
-            let gl = &ctx.gl;
-            gl.viewport(0, 0, width as i32, height as i32);
-        }
+    unsafe fn resize(&mut self, ctx: &GLContext, width: u32, height: u32) {
+        let gl = &ctx.gl;
+        gl.viewport(0, 0, width as i32, height as i32);
     }
 
-    fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
+    unsafe fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
         self.camera.process_keyboard_with_input(input);
         self.camera.process_mouse_with_input(input, true);
     }
 
-    fn exit(&mut self, ctx: &GLContext) {
+    unsafe fn exit(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
 
         self.shader.delete(gl);

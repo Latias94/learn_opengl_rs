@@ -8,7 +8,7 @@ use glow::*;
 use nalgebra_glm as glm;
 use winit_input_helper::WinitInputHelper;
 
-pub async fn main_3_1_1() {
+pub async unsafe fn main_3_1_1() {
     let init_info = WindowInitInfo::builder()
         .title("Model Loading".to_string())
         .build();
@@ -24,11 +24,9 @@ struct App {
 }
 
 impl Application for App {
-    async fn new(ctx: &GLContext) -> Self {
+    async unsafe fn new(ctx: &GLContext) -> Self {
         let gl = &ctx.gl;
-        unsafe {
-            gl.enable(DEPTH_TEST);
-        }
+        gl.enable(DEPTH_TEST);
 
         let our_shader = MyShader::new_from_source(
             gl,
@@ -58,13 +56,11 @@ impl Application for App {
         }
     }
 
-    fn render(&mut self, ctx: &GLContext) {
+    unsafe fn render(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
 
-        unsafe {
-            gl.clear_color(0.1, 0.1, 0.1, 1.0);
-            gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
-        }
+        gl.clear_color(0.1, 0.1, 0.1, 1.0);
+        gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
         self.our_shader.use_shader(gl);
         let projection = glm::perspective(
@@ -85,19 +81,17 @@ impl Application for App {
         self.model.draw(gl, &self.our_shader);
     }
 
-    fn resize(&mut self, ctx: &GLContext, width: u32, height: u32) {
-        unsafe {
-            let gl = &ctx.gl;
-            gl.viewport(0, 0, width as i32, height as i32);
-        }
+    unsafe fn resize(&mut self, ctx: &GLContext, width: u32, height: u32) {
+        let gl = &ctx.gl;
+        gl.viewport(0, 0, width as i32, height as i32);
     }
 
-    fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
+    unsafe fn process_input(&mut self, _ctx: &GLContext, input: &WinitInputHelper) {
         self.camera.process_keyboard_with_input(input);
         self.camera.process_mouse_with_input(input, true);
     }
 
-    fn exit(&mut self, ctx: &GLContext) {
+    unsafe fn exit(&mut self, ctx: &GLContext) {
         let gl = &ctx.gl;
 
         self.our_shader.delete(gl);
