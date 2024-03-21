@@ -212,7 +212,7 @@ impl Application for App {
         let vegetation_texture = resources::load_texture(gl, "textures/grass.png")
             .await
             .expect("Failed to load texture");
-        vegetation_texture.set_wrap_mode(gl, REPEAT as i32, REPEAT as i32);
+        vegetation_texture.set_wrap_mode(gl, CLAMP_TO_EDGE as i32, CLAMP_TO_EDGE as i32);
 
         shader.use_shader(gl);
         shader.set_int(gl, "texture1", 0);

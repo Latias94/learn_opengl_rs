@@ -15,12 +15,6 @@ pub struct Game<A: Application> {
     ctx: AppContext,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug)]
-pub enum UserEvent {
-    Redraw(Duration),
-}
-
 pub trait Application: Sized {
     async unsafe fn new(_ctx: &AppContext) -> Self;
     fn ui(&mut self, _state: &AppState, _egui_ctx: &egui::Context) {}
@@ -46,8 +40,6 @@ pub struct WindowInitInfo {
 }
 
 pub struct AppContext {
-    #[cfg(not(target_arch = "wasm32"))]
-    pub egui_glow: egui_glow::EguiGlow,
     pub gl_context: GLContext,
     pub state: AppState,
 }
@@ -165,9 +157,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         let major = init_info.major;
         let minor = init_info.minor;
 
-        let event_loop = winit::event_loop::EventLoopBuilder::<UserEvent>::with_user_event()
-            .build()
-            .unwrap();
+        let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
         let window_builder = winit::window::WindowBuilder::new()
             .with_title(title.as_str())
             .with_inner_size(winit::dpi::LogicalSize::new(width, height));
@@ -244,21 +234,6 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
     #[allow(clippy::arc_with_non_send_sync)]
     let gl = Arc::new(gl);
 
-    #[cfg(not(target_arch = "wasm32"))]
-    let egui_glow = {
-        let egui_glow = egui_glow::EguiGlow::new(&event_loop, gl.clone(), None, None);
-        let event_loop_proxy = egui::mutex::Mutex::new(event_loop.create_proxy());
-        egui_glow
-            .egui_ctx
-            .set_request_repaint_callback(move |info| {
-                event_loop_proxy
-                    .lock()
-                    .send_event(UserEvent::Redraw(info.delay))
-                    .expect("Cannot send event");
-            });
-        egui_glow
-    };
-
     let ctx = AppContext {
         gl_context: GLContext {
             gl,
@@ -276,8 +251,6 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             update_delta_time: 0.0,
             render_delta_time: 0.0,
         },
-        #[cfg(not(target_arch = "wasm32"))]
-        egui_glow,
     };
 
     let app = App::new(&ctx).await;
@@ -311,14 +284,11 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             ctx.state.render_delta_time =
                 (now - ctx.state.last_render_time).num_milliseconds() as f32 / 1000.0;
             ctx.state.last_render_time = chrono::Utc::now();
-            #[cfg(not(target_arch = "wasm32"))]
-            ctx.egui_glow.run(&g.window, |egui_ctx| {
-                app.ui(&ctx.state, egui_ctx);
-            });
+
             app.render(ctx);
+
             #[cfg(not(target_arch = "wasm32"))]
             {
-                ctx.egui_glow.paint(&g.window);
                 use game_loop::TimeTrait;
                 use glutin::surface::GlSurface;
 
@@ -347,8 +317,6 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 {
                     log::info!("Exiting");
                     app.exit(ctx);
-                    #[cfg(not(target_arch = "wasm32"))]
-                    ctx.egui_glow.destroy();
                     g.exit();
                     return;
                 }
@@ -361,14 +329,6 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
 
                 app.process_input(ctx, input);
                 return;
-            }
-
-            #[cfg(not(target_arch = "wasm32"))]
-            if let winit::event::Event::WindowEvent { event, .. } = &event {
-                let event_response = ctx.egui_glow.on_window_event(&g.window, event);
-                if event_response.repaint {
-                    g.window.request_redraw();
-                }
             }
         },
     )
