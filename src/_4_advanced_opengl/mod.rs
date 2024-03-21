@@ -12,3 +12,6 @@ pub use _3_1_blending_discard::main_4_3_1;
 
 mod _3_2_blending_sort;
 pub use _3_2_blending_sort::main_4_3_2;
+
+mod _4_1_face_culling_exercise_1;
+pub use _4_1_face_culling_exercise_1::main_4_4_1;
