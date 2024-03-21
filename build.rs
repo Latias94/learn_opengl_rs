@@ -4,7 +4,7 @@ use fs_extra::dir::CopyOptions;
 use std::env;
 
 fn main() -> Result<()> {
-    println!("cargo:rerun-if-changed=resources/*");
+    println!("cargo:rerun-if-changed=resources/");
 
     // desktop
     let out_dir = env::var("OUT_DIR")?;
