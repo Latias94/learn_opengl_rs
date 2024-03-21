@@ -81,7 +81,6 @@ pub async unsafe fn run_tutorial(tutorial_id: String) {
         "4_1_1" => main_4_1_1().await,
         "4_1_2" => main_4_1_2().await,
         "4_2_1" => main_4_2_1().await,
-        #[cfg(not(target_arch = "wasm32"))]
         "9_1_1" => main_9_1_1().await,
         _ => log::error!("Unknown tutorial id: {}", tutorial_id),
     }

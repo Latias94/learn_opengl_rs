@@ -8,7 +8,7 @@ use winit::keyboard::KeyCode;
 use winit_input_helper::WinitInputHelper;
 
 pub async unsafe fn main_9_1_1() {
-    let init_info = WindowInitInfo::builder().title("ImGui".to_string()).build();
+    let init_info = WindowInitInfo::builder().title("egui".to_string()).build();
     unsafe {
         run::<App>(init_info).await;
     }
@@ -36,6 +36,9 @@ struct App {
 
 impl Application for App {
     async unsafe fn new(ctx: &AppContext) -> Self {
+        #[cfg(target_arch = "wasm32")]
+        log::info!("Not implemented for web yet.");
+
         let gl = &ctx.gl();
         let shader = MyShader::new_from_source(
             gl,

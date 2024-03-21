@@ -23,7 +23,6 @@ pub enum UserEvent {
 
 pub trait Application: Sized {
     async unsafe fn new(_ctx: &AppContext) -> Self;
-    #[cfg(not(target_arch = "wasm32"))]
     fn ui(&mut self, _state: &AppState, _egui_ctx: &egui::Context) {}
     unsafe fn render(&mut self, _ctx: &AppContext) {}
     unsafe fn update(&mut self, _update_delta_time: f32) {}
