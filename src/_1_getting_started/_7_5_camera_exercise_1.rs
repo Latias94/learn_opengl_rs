@@ -89,7 +89,7 @@ struct App {
 
 impl Application for App {
     async unsafe fn new(ctx: &AppContext) -> Self {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
         let shader = MyShader::new_from_source(
             gl,
             // embedded shader
@@ -204,7 +204,7 @@ impl Application for App {
     }
 
     unsafe fn render(&mut self, ctx: &AppContext) {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
         gl.clear_color(0.2, 0.3, 0.3, 1.0);
         gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
@@ -239,7 +239,7 @@ impl Application for App {
     }
 
     unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
         gl.viewport(0, 0, width as i32, height as i32);
     }
 
@@ -254,7 +254,7 @@ impl Application for App {
     }
 
     unsafe fn exit(&mut self, ctx: &AppContext) {
-        let gl = &ctx.gl();
+        let gl = ctx.gl();
 
         self.shader.delete(gl);
 
