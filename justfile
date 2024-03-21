@@ -21,9 +21,9 @@ web TUTORIAL="1_2_1":
   @echo 'You can also change the tutorial number in the URL to see different tutorials. e.g. 1_1_1, 1_1_2, 1_2_1, ...'
   cd web && python3 -m http.server
 
-web-bindgen:
+web-bindgen TUTORIAL="1_2_1":
   @echo 'Build and serve for web'
   cargo build --target wasm32-unknown-unknown && wasm-bindgen ./target/wasm32-unknown-unknown/debug/learn_opengl_rs.wasm --out-dir web --target web
-  @echo 'Open http://127.0.0.1:8000/?tutorial=1_2_1 in your browser!'
+  @echo 'Open http://127.0.0.1:8000/?tutorial={{TUTORIAL}} in your browser!'
   @echo 'You can also change the tutorial number in the URL to see different tutorials. e.g. 1_1_1, 1_1_2, 1_2_1, ...'
   cd web && python3 -m http.server
