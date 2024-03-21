@@ -30,7 +30,6 @@ anyhow = "1"
 tobj = { version = "4", features = [
     "async",
 ] }
-#russimp = { version = "3.2", features = ["prebuilt"] }
 
 [target.'cfg(not(any(target_arch = "wasm32")))'.dependencies]
 # OpenGL context
@@ -40,6 +39,8 @@ raw-window-handle = "0.5"
 env_logger = "0.11"
 # block on async
 pollster = "0.3"
+egui = { version = "0.26", features = ["default_fonts"] }
+egui_glow = { version = "0.26", features = ["winit"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }

@@ -36,6 +36,14 @@ camera control etc.
 
 ### [4. Advanced OpenGL](https://github.com/Latias94/learn_opengl_rs/tree/main/src/_4_advanced_opengl)
 
+## Notes
+
+- The function to load models and textures is implemented in `resources.rs`. Basically `build.rs` file will copy all
+  resources to the output directory, so we can use relative path to load resources. For wasm, `build.rs` file will also
+  copy resources to `web` directory, then we can download them from the local server.
+- I use `tobj` crate to load models, thus only support `.obj` format.
+- I use `include_str!` macro to load shaders for simplicity.
+
 ## Build
 
 ### Prerequisites

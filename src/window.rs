@@ -12,16 +12,24 @@ pub const TIME_STEP: Duration = Duration::from_nanos(1_000_000_000 / FPS as u64)
 pub struct Game<A: Application> {
     input: WinitInputHelper,
     app: A,
-    ctx: GLContext,
+    ctx: AppContext,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug)]
+pub enum UserEvent {
+    Redraw(Duration),
 }
 
 pub trait Application: Sized {
-    async unsafe fn new(_ctx: &GLContext) -> Self;
-    unsafe fn render(&mut self, _ctx: &GLContext) {}
+    async unsafe fn new(_ctx: &AppContext) -> Self;
+    #[cfg(not(target_arch = "wasm32"))]
+    fn ui(&mut self, _state: &AppState, _egui_ctx: &egui::Context) {}
+    unsafe fn render(&mut self, _ctx: &AppContext) {}
     unsafe fn update(&mut self, _update_delta_time: f32) {}
-    unsafe fn resize(&mut self, _ctx: &GLContext, _width: u32, _height: u32) {}
-    unsafe fn process_input(&mut self, _ctx: &GLContext, _input: &WinitInputHelper) {}
-    unsafe fn exit(&mut self, _ctx: &GLContext) {}
+    unsafe fn resize(&mut self, _ctx: &AppContext, _width: u32, _height: u32) {}
+    unsafe fn process_input(&mut self, _ctx: &AppContext, _input: &WinitInputHelper) {}
+    unsafe fn exit(&mut self, _ctx: &AppContext) {}
 }
 
 #[derive(TypedBuilder, Debug, Clone, PartialEq, Eq, Hash)]
@@ -38,8 +46,21 @@ pub struct WindowInitInfo {
     pub minor: u8,
 }
 
+pub struct AppContext {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub egui_glow: egui_glow::EguiGlow,
+    pub gl_context: GLContext,
+    pub state: AppState,
+}
+
 pub struct GLContext {
-    pub gl: glow::Context,
+    pub gl: Arc<glow::Context>,
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub gl_surface: glutin::surface::Surface<glutin::surface::WindowSurface>,
+}
+
+pub struct AppState {
     pub suggested_shader_version: &'static str,
     pub width: u32,
     pub height: u32,
@@ -49,6 +70,36 @@ pub struct GLContext {
     pub last_render_time: chrono::DateTime<chrono::Utc>,
     pub update_delta_time: f32,
     pub render_delta_time: f32,
+}
+
+impl AppContext {
+    pub fn gl(&self) -> &glow::Context {
+        &self.gl_context.gl
+    }
+
+    pub fn height(&self) -> u32 {
+        self.state.height
+    }
+
+    pub fn width(&self) -> u32 {
+        self.state.width
+    }
+
+    #[allow(dead_code)]
+    pub fn scale_factor(&self) -> f64 {
+        self.state.scale_factor
+    }
+    pub fn update_delta_time(&self) -> f32 {
+        self.state.update_delta_time
+    }
+
+    pub fn render_delta_time(&self) -> f32 {
+        self.state.render_delta_time
+    }
+
+    pub fn suggested_shader_version(&self) -> &'static str {
+        self.state.suggested_shader_version
+    }
 }
 
 pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
@@ -115,7 +166,9 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         let major = init_info.major;
         let minor = init_info.minor;
 
-        let event_loop = winit::event_loop::EventLoopBuilder::new().build().unwrap();
+        let event_loop = winit::event_loop::EventLoopBuilder::<UserEvent>::with_user_event()
+            .build()
+            .unwrap();
         let window_builder = winit::window::WindowBuilder::new()
             .with_title(title.as_str())
             .with_inner_size(winit::dpi::LogicalSize::new(width, height));
@@ -189,17 +242,43 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             let scale_factor= window.scale_factor();
         }
     }
-    let ctx = GLContext {
-        gl,
-        suggested_shader_version: shader_version,
-        width,
-        height,
-        scale_factor,
-        start: chrono::Utc::now(),
-        last_update_time: chrono::Utc::now(),
-        last_render_time: chrono::Utc::now(),
-        update_delta_time: 0.0,
-        render_delta_time: 0.0,
+    #[allow(clippy::arc_with_non_send_sync)]
+    let gl = Arc::new(gl);
+
+    #[cfg(not(target_arch = "wasm32"))]
+    let egui_glow = {
+        let egui_glow = egui_glow::EguiGlow::new(&event_loop, gl.clone(), None, None);
+        let event_loop_proxy = egui::mutex::Mutex::new(event_loop.create_proxy());
+        egui_glow
+            .egui_ctx
+            .set_request_repaint_callback(move |info| {
+                event_loop_proxy
+                    .lock()
+                    .send_event(UserEvent::Redraw(info.delay))
+                    .expect("Cannot send event");
+            });
+        egui_glow
+    };
+
+    let ctx = AppContext {
+        gl_context: GLContext {
+            gl,
+            #[cfg(not(target_arch = "wasm32"))]
+            gl_surface,
+        },
+        state: AppState {
+            suggested_shader_version: shader_version,
+            width,
+            height,
+            scale_factor,
+            start: chrono::Utc::now(),
+            last_update_time: chrono::Utc::now(),
+            last_render_time: chrono::Utc::now(),
+            update_delta_time: 0.0,
+            render_delta_time: 0.0,
+        },
+        #[cfg(not(target_arch = "wasm32"))]
+        egui_glow,
     };
 
     let app = App::new(&ctx).await;
@@ -211,6 +290,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
     };
 
     let window = Arc::new(window);
+
     game_loop::game_loop(
         event_loop,
         window,
@@ -220,22 +300,35 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         move |g| {
             let ctx = &mut g.game.ctx;
             let now = chrono::Utc::now();
-            ctx.update_delta_time = (now - ctx.last_update_time).num_milliseconds() as f32 / 1000.0;
-            ctx.last_update_time = chrono::Utc::now();
-            g.game.app.update(ctx.update_delta_time);
+            ctx.state.update_delta_time =
+                (now - ctx.state.last_update_time).num_milliseconds() as f32 / 1000.0;
+            ctx.state.last_update_time = chrono::Utc::now();
+            g.game.app.update(ctx.state.update_delta_time);
         },
         move |g| {
             let ctx = &mut g.game.ctx;
             let now = chrono::Utc::now();
-            ctx.render_delta_time = (now - ctx.last_render_time).num_milliseconds() as f32 / 1000.0;
-            ctx.last_render_time = chrono::Utc::now();
-            g.game.app.render(ctx);
+            let app = &mut g.game.app;
+            ctx.state.render_delta_time =
+                (now - ctx.state.last_render_time).num_milliseconds() as f32 / 1000.0;
+            ctx.state.last_render_time = chrono::Utc::now();
+            #[cfg(not(target_arch = "wasm32"))]
+            ctx.egui_glow.run(&g.window, |egui_ctx| {
+                app.ui(&ctx.state, egui_ctx);
+            });
+            app.render(ctx);
             #[cfg(not(target_arch = "wasm32"))]
             {
+                ctx.egui_glow.paint(&g.window);
                 use game_loop::TimeTrait;
                 use glutin::surface::GlSurface;
 
-                gl_surface.swap_buffers(&gl_context).unwrap();
+                g.game
+                    .ctx
+                    .gl_context
+                    .gl_surface
+                    .swap_buffers(&gl_context)
+                    .unwrap();
 
                 let dt = TIME_STEP.as_secs_f64() - game_loop::Time::now().sub(&g.current_instant());
                 if dt > 0.0 {
@@ -255,6 +348,8 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 {
                     log::info!("Exiting");
                     app.exit(ctx);
+                    #[cfg(not(target_arch = "wasm32"))]
+                    ctx.egui_glow.destroy();
                     g.exit();
                     return;
                 }
@@ -266,6 +361,15 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 }
 
                 app.process_input(ctx, input);
+                return;
+            }
+
+            #[cfg(not(target_arch = "wasm32"))]
+            if let winit::event::Event::WindowEvent { event, .. } = &event {
+                let event_response = ctx.egui_glow.on_window_event(&g.window, event);
+                if event_response.repaint {
+                    g.window.request_redraw();
+                }
             }
         },
     )
