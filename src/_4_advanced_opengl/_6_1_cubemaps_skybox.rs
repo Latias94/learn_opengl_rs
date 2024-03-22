@@ -1,7 +1,6 @@
 use crate::camera::Camera;
 use crate::resources::load_binary;
 use crate::shader::MyShader;
-use crate::texture::TextureType;
 use crate::window::{run, AppContext, Application, WindowInitInfo};
 use crate::{resources, texture};
 use glow::*;
@@ -257,7 +256,7 @@ impl Application for App {
 
         // skybox
         gl.bind_vertex_array(Some(self.skybox_vao));
-        self.skybox_texture.bind(gl, 0);
+        gl.bind_texture(TEXTURE_2D, Some(self.skybox_texture));
         let model = glm::Mat4::identity();
         self.shader.set_mat4(gl, "model", &model);
         gl.draw_arrays(TRIANGLES, 0, 6);
@@ -286,7 +285,7 @@ impl Application for App {
 
         gl.delete_buffer(self.skybox_vbo);
         gl.delete_vertex_array(self.skybox_vao);
-        self.skybox_texture.delete(gl);
+        gl.delete_texture(self.skybox_texture);
     }
 }
 

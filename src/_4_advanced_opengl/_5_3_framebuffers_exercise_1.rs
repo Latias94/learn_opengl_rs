@@ -1,6 +1,6 @@
 use crate::camera::Camera;
 use crate::shader::MyShader;
-use crate::window::{run, AppContext, Application, WindowInitInfo, AppState};
+use crate::window::{run, AppContext, Application, WindowInitInfo};
 use crate::{resources, texture};
 use glow::*;
 use nalgebra_glm as glm;
@@ -289,7 +289,7 @@ impl Application for App {
             camera,
         }
     }
-    
+
     unsafe fn render(&mut self, ctx: &AppContext) {
         let gl = ctx.gl();
 
@@ -391,7 +391,7 @@ impl Application for App {
         self.camera.process_keyboard_with_input(input);
         self.camera.process_mouse_with_input(input, true);
     }
-    
+
     unsafe fn exit(&mut self, ctx: &AppContext) {
         let gl = ctx.gl();
 
