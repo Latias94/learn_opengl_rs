@@ -7,9 +7,9 @@ use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub async unsafe fn main_4_3_2() {
+pub async unsafe fn main_4_5_1() {
     let init_info = WindowInitInfo::builder()
-        .title("Blending Sort".to_string())
+        .title("Framebuffers".to_string())
         .build();
     unsafe {
         run::<App>(init_info).await;
@@ -65,34 +65,26 @@ const VERTICES: [f32; 180] = [
 #[rustfmt::skip]
 const PLANE_VERTICES: [f32; 30] = [
     // positions    texture Coords
-    //  (note we set these higher than 1 (together with GL_REPEAT as texture wrapping mode). this will cause the floor texture to repeat)
-    5.0, -0.5, 5.0, 2.0, 0.0,
-    -5.0, -0.5, 5.0, 0.0, 0.0,
-    -5.0, -0.5, -5.0, 0.0, 2.0,
+    5.0, -0.5,  5.0,  2.0, 0.0,
+    -5.0, -0.5,  5.0,  0.0, 0.0,
+    -5.0, -0.5, -5.0,  0.0, 2.0,
 
-    5.0, -0.5, 5.0, 2.0, 0.0,
-    -5.0, -0.5, -5.0, 0.0, 2.0,
-    5.0, -0.5, -5.0, 2.0, 2.0
+    5.0, -0.5,  5.0,  2.0, 0.0,
+    -5.0, -0.5, -5.0,  0.0, 2.0,
+    5.0, -0.5, -5.0,  2.0, 2.0
 ];
 
 #[rustfmt::skip]
-const TRANSPARENT_VERTICES: [f32; 30] = [
-    // positions  // texture Coords
-    0.0, 0.5, 0.0, 0.0, 1.0,
-    0.0, -0.5, 0.0, 0.0, 0.0,
-    1.0, -0.5, 0.0, 1.0, 0.0,
+const QUAD_VERTICES: [f32; 24] = [
+    // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+    // positions    texture Coords
+    -1.0,  1.0,  0.0, 1.0,
+    -1.0, -1.0,  0.0, 0.0,
+    1.0, -1.0,  1.0, 0.0,
 
-    0.0, 0.5, 0.0, 0.0, 1.0,
-    1.0, -0.5, 0.0, 1.0, 0.0,
-    1.0, 0.5, 0.0 , 1.0, 1.0
-];
-
-const WINDOWS_POSITION: [glm::Vec3; 5] = [
-    glm::Vec3::new(-1.5, 0.0, -0.48),
-    glm::Vec3::new(1.5, 0.0, 0.51),
-    glm::Vec3::new(0.0, 0.0, 0.7),
-    glm::Vec3::new(-0.3, 0.0, -2.3),
-    glm::Vec3::new(0.5, 0.0, -0.6),
+    -1.0,  1.0,  0.0, 1.0,
+    1.0, -1.0,  1.0, 0.0,
+    1.0,  1.0,  1.0, 1.0
 ];
 
 struct App {
@@ -104,11 +96,15 @@ struct App {
     plane_vao: VertexArray,
     plane_texture: texture::Texture,
 
-    transparent_vbo: Buffer,
-    transparent_vao: VertexArray,
-    transparent_texture: texture::Texture,
+    quad_vbo: Buffer,
+    quad_vao: VertexArray,
+
+    framebuffer: Framebuffer,
+    texture_color_buffer: Texture,
+    rbo: Renderbuffer,
 
     shader: MyShader,
+    screen_shader: MyShader,
     camera: Camera,
 }
 
@@ -123,12 +119,17 @@ impl Application for App {
             Some(ctx.suggested_shader_version()),
         )
         .expect("Failed to create program");
+        let screen_shader = MyShader::new_from_source(
+            gl,
+            include_str!("shaders/_5_1_framebuffers_screen.vs"),
+            include_str!("shaders/_5_1_framebuffers_screen.fs"),
+            Some(ctx.suggested_shader_version()),
+        )
+        .expect("Failed to create program");
 
         let camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
 
         gl.enable(DEPTH_TEST);
-        gl.enable(BLEND);
-        gl.blend_func(SRC_ALPHA, ONE_MINUS_SRC_ALPHA);
 
         //  cube vao
         let cube_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
@@ -177,48 +178,99 @@ impl Application for App {
         );
         gl.enable_vertex_attrib_array(1);
 
-        // vegetation vao
-        let transparent_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
-        gl.bind_buffer(ARRAY_BUFFER, Some(transparent_vbo));
+        // screen quad vao
+        let quad_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
+        gl.bind_buffer(ARRAY_BUFFER, Some(quad_vbo));
         gl.buffer_data_u8_slice(
             ARRAY_BUFFER,
-            bytemuck::cast_slice(&TRANSPARENT_VERTICES),
+            bytemuck::cast_slice(&QUAD_VERTICES),
             STATIC_DRAW,
         );
 
-        let transparent_vao = gl
+        let quad_vao = gl
             .create_vertex_array()
             .expect("Cannot create vertex array");
-        gl.bind_vertex_array(Some(transparent_vao));
-        gl.vertex_attrib_pointer_f32(0, 3, FLOAT, false, 5 * size_of::<f32>() as i32, 0);
+        gl.bind_vertex_array(Some(quad_vao));
+        gl.vertex_attrib_pointer_f32(0, 2, FLOAT, false, 4 * size_of::<f32>() as i32, 0);
         gl.enable_vertex_attrib_array(0);
         gl.vertex_attrib_pointer_f32(
             1,
             2,
             FLOAT,
             false,
-            5 * size_of::<f32>() as i32,
-            (3 * size_of::<f32>()) as i32,
+            4 * size_of::<f32>() as i32,
+            (2 * size_of::<f32>()) as i32,
         );
         gl.enable_vertex_attrib_array(1);
 
         gl.bind_vertex_array(None);
 
         // load texture
-        let cube_texture = resources::load_texture(gl, "textures/marble.jpg")
+        let cube_texture = resources::load_texture(gl, "textures/container.jpg")
             .await
             .expect("Failed to load texture");
         let plane_texture = resources::load_texture(gl, "textures/metal.png")
             .await
             .expect("Failed to load texture");
-        let transparent_texture =
-            resources::load_texture(gl, "textures/blending_transparent_window.png")
-                .await
-                .expect("Failed to load texture");
-        transparent_texture.set_wrap_mode(gl, CLAMP_TO_EDGE as i32, CLAMP_TO_EDGE as i32);
 
         shader.use_shader(gl);
         shader.set_int(gl, "texture1", 0);
+
+        screen_shader.use_shader(gl);
+        screen_shader.set_int(gl, "screenTexture", 0);
+
+        // framebuffer configuration
+        // -------------------------
+        let framebuffer = gl.create_framebuffer().expect("Create framebuffer");
+        gl.bind_framebuffer(FRAMEBUFFER, Some(framebuffer));
+        // create a color attachment texture
+        let texture_color_buffer = gl.create_texture().expect("Create texture");
+        gl.bind_texture(TEXTURE_2D, Some(texture_color_buffer));
+        gl.tex_image_2d(
+            TEXTURE_2D,
+            0,
+            RGB as i32,
+            ctx.width() as i32,
+            ctx.height() as i32,
+            0,
+            RGB,
+            UNSIGNED_BYTE,
+            None,
+        );
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MIN_FILTER, LINEAR as i32);
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, LINEAR as i32);
+        gl.framebuffer_texture_2d(
+            FRAMEBUFFER,
+            COLOR_ATTACHMENT0,
+            TEXTURE_2D,
+            Some(texture_color_buffer),
+            0,
+        );
+        // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+        let rbo = gl.create_renderbuffer().expect("Create renderbuffer");
+        gl.bind_renderbuffer(RENDERBUFFER, Some(rbo));
+        // use a single renderbuffer object for both a depth AND stencil buffer.
+        gl.renderbuffer_storage(
+            RENDERBUFFER,
+            DEPTH24_STENCIL8,
+            ctx.width() as i32,
+            ctx.height() as i32,
+        );
+        // now actually attach it
+        gl.framebuffer_renderbuffer(
+            FRAMEBUFFER,
+            DEPTH_STENCIL_ATTACHMENT,
+            RENDERBUFFER,
+            Some(rbo),
+        );
+        // check if framebuffer is complete
+        if gl.check_framebuffer_status(FRAMEBUFFER) != FRAMEBUFFER_COMPLETE {
+            log::error!("Framebuffer is not complete!");
+        }
+        gl.bind_framebuffer(FRAMEBUFFER, None);
+
+        // draw as wireframe
+        // gl.polygon_mode(FRONT_AND_BACK, LINE);
 
         Self {
             cube_vbo,
@@ -227,10 +279,13 @@ impl Application for App {
             plane_vbo,
             plane_vao,
             plane_texture,
-            transparent_vbo,
-            transparent_vao,
-            transparent_texture,
+            quad_vbo,
+            quad_vao,
+            framebuffer,
+            texture_color_buffer,
+            rbo,
             shader,
+            screen_shader,
             camera,
         }
     }
@@ -238,14 +293,11 @@ impl Application for App {
     unsafe fn render(&mut self, ctx: &AppContext) {
         let gl = ctx.gl();
 
-        let mut distances: Vec<(f32, glm::Vec3)> = WINDOWS_POSITION
-            .iter()
-            .map(|&position| {
-                let distance = glm::distance(&self.camera.position(), &position);
-                (distance, position)
-            })
-            .collect();
-        distances.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Greater));
+        // render
+        // ------
+        // bind to framebuffer and draw scene as we normally would to color texture
+        gl.bind_framebuffer(FRAMEBUFFER, Some(self.framebuffer));
+        gl.enable(DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 
         gl.clear_color(0.1, 0.1, 0.1, 1.0);
         gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
@@ -280,21 +332,20 @@ impl Application for App {
         self.shader.set_mat4(gl, "model", &model);
         gl.draw_arrays(TRIANGLES, 0, 6);
 
-        // vegetation
-        gl.bind_vertex_array(Some(self.transparent_vao));
-        self.transparent_texture.bind(gl, 0);
+        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+        gl.bind_framebuffer(FRAMEBUFFER, None);
+        // disable depth test so screen-space quad isn't discarded due to depth test.
+        gl.disable(DEPTH_TEST);
+        // clear all relevant buffers
+        // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+        gl.clear_color(1.0, 1.0, 1.0, 1.0);
+        gl.clear(COLOR_BUFFER_BIT);
 
-        for &(_, position) in distances.iter() {
-            let model = glm::translate(&glm::Mat4::identity(), &position);
-            self.shader.set_mat4(gl, "model", &model);
-            gl.draw_arrays(TRIANGLES, 0, 6);
-        }
-        // for &position in WINDOWS_POSITION.iter() {
-        //     let model = glm::translate(&glm::Mat4::identity(), &position);
-        //     self.shader.set_mat4(gl, "model", &model);
-        //     gl.draw_arrays(TRIANGLES, 0, 6);
-        // }
-
+        self.screen_shader.use_shader(gl);
+        gl.bind_vertex_array(Some(self.quad_vao));
+        // use the color attachment texture as the texture of the quad plane
+        gl.bind_texture(TEXTURE_2D, Some(self.texture_color_buffer));
+        gl.draw_arrays(TRIANGLES, 0, 6);
         gl.bind_vertex_array(None);
     }
 
@@ -312,18 +363,20 @@ impl Application for App {
         let gl = ctx.gl();
 
         self.shader.delete(gl);
-        unsafe {
-            gl.delete_buffer(self.cube_vbo);
-            gl.delete_vertex_array(self.cube_vao);
-            self.cube_texture.delete(gl);
 
-            gl.delete_buffer(self.plane_vbo);
-            gl.delete_vertex_array(self.plane_vao);
-            self.plane_texture.delete(gl);
+        gl.delete_buffer(self.cube_vbo);
+        gl.delete_vertex_array(self.cube_vao);
+        self.cube_texture.delete(gl);
 
-            gl.delete_buffer(self.transparent_vbo);
-            gl.delete_vertex_array(self.transparent_vao);
-            self.transparent_texture.delete(gl);
-        }
+        gl.delete_buffer(self.plane_vbo);
+        gl.delete_vertex_array(self.plane_vao);
+        self.plane_texture.delete(gl);
+
+        gl.delete_buffer(self.quad_vbo);
+        gl.delete_vertex_array(self.quad_vao);
+
+        gl.delete_framebuffer(self.framebuffer);
+        gl.delete_texture(self.texture_color_buffer);
+        gl.delete_renderbuffer(self.rbo);
     }
 }

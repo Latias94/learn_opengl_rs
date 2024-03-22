@@ -47,6 +47,7 @@ camera control etc.
   copy resources to `web` directory, then we can download them from the local server.
 - I use `tobj` crate to load models, thus only support `.obj` format.
 - I use `include_str!` macro to load shaders for simplicity.
+- `egui` only used on desktop for now.
 
 ## Build
 

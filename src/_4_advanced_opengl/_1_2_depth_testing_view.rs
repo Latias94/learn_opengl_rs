@@ -18,7 +18,7 @@ pub async unsafe fn main_4_1_2() {
 
 #[rustfmt::skip]
 const VERTICES: [f32; 180] = [
-    // pos           normal
+    // pos           // texture Coords
     -0.5, -0.5, -0.5,  0.0, 0.0,
     0.5, -0.5, -0.5,  1.0, 0.0,
     0.5,  0.5, -0.5,  1.0, 1.0,

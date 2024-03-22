@@ -15,3 +15,15 @@ pub use _3_2_blending_sort::main_4_3_2;
 
 mod _4_1_face_culling_exercise_1;
 pub use _4_1_face_culling_exercise_1::main_4_4_1;
+
+mod _5_1_framebuffers;
+pub use _5_1_framebuffers::main_4_5_1;
+
+mod _5_2_framebuffers_effects;
+pub use _5_2_framebuffers_effects::main_4_5_2;
+
+mod _5_3_framebuffers_exercise_1;
+pub use _5_3_framebuffers_exercise_1::main_4_5_3;
+
+mod _6_1_cubemaps_skybox;
+pub use _6_1_cubemaps_skybox::main_4_6_1;
