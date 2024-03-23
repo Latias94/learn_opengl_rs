@@ -390,6 +390,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
     .unwrap();
 }
 
+#[allow(dead_code)]
 fn record_gl_states(gl: &glow::Context, states: &mut HashMap<u32, bool>) {
     unsafe {
         states.insert(glow::BLEND, gl.is_enabled(glow::BLEND));

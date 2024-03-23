@@ -22,15 +22,15 @@ void main()
     );
 
     float kernel[9] = float[](
-        1.0 / 16, 2.0 / 16, 1.0 / 16,
-        2.0 / 16, 4.0 / 16, 2.0 / 16,
-        1.0 / 16, 2.0 / 16, 1.0 / 16
+        1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0,
+        2.0 / 16.0, 4.0 / 16.0, 2.0 / 16.0,
+        1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0
     );
 
     vec3 sampleTex[9];
     for (int i = 0; i < 9; i++)
     {
-        sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
+        sampleTex[i] = texture(screenTexture, TexCoords.st + offsets[i]).rgb;
     }
     vec3 col = vec3(0.0);
     for (int i = 0; i < 9; i++)
