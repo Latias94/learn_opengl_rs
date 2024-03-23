@@ -1,8 +1,11 @@
+use easy_imgui_window::MainWindowRef;
 use glow::HasContext;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use typed_builder::TypedBuilder;
+use winit::dpi::{LogicalSize, PhysicalSize};
 use winit_input_helper::WinitInputHelper;
 
 pub const UPDATE_PER_SECOND: usize = 240;
@@ -23,7 +26,7 @@ pub enum UserEvent {
     Redraw(Duration),
 }
 
-pub trait Application: Sized {
+pub trait Application: Sized + easy_imgui_window::easy_imgui::UiBuilder {
     async unsafe fn new(_ctx: &AppContext) -> Self;
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     fn ui(&mut self, _state: &AppState, _egui_ctx: &egui::Context) {}
@@ -51,13 +54,20 @@ pub struct WindowInitInfo {
 pub struct AppContext {
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     pub egui_glow: egui_glow::EguiGlow,
+    pub imgui_renderer: easy_imgui_window::easy_imgui_renderer::Renderer,
+    pub window: AppWindow,
+    pub window_status: easy_imgui_window::MainWindowStatus,
     pub gl_context: GLContext,
     pub app_state: AppState,
     pub gl_state: GlState,
 }
 
+pub struct AppWindow {
+    pub window: Arc<winit::window::Window>,
+}
+
 pub struct GLContext {
-    pub gl: Arc<glow::Context>,
+    pub gl: Rc<glow::Context>,
 
     #[cfg(not(target_arch = "wasm32"))]
     pub gl_surface: glutin::surface::Surface<glutin::surface::WindowSurface>,
@@ -255,7 +265,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         }
     }
     #[allow(clippy::arc_with_non_send_sync)]
-    let gl = Arc::new(gl);
+    let gl = Rc::new(gl);
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     let egui_glow = {
@@ -272,7 +282,15 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         egui_glow
     };
 
+    let imgui_renderer = easy_imgui_window::easy_imgui_renderer::Renderer::new(gl.clone()).unwrap();
+    let window = Arc::new(window);
+
     let ctx = AppContext {
+        imgui_renderer,
+        window: AppWindow {
+            window: window.clone(),
+        },
+        window_status: Default::default(),
         gl_context: GLContext {
             gl,
             #[cfg(not(target_arch = "wasm32"))]
@@ -301,8 +319,6 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         app,
         ctx,
     };
-
-    let window = Arc::new(window);
 
     game_loop::game_loop(
         event_loop,
@@ -381,6 +397,13 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 return;
             }
 
+            easy_imgui_window::do_event_w(
+                &mut ctx.window,
+                &mut ctx.imgui_renderer,
+                &mut ctx.window_status,
+                app,
+                event,
+            );
             #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
             if let winit::event::Event::WindowEvent { event, .. } = &event {
                 let event_response = ctx.egui_glow.on_window_event(&g.window, event);
@@ -427,5 +450,20 @@ fn restore_gl_states(gl: &glow::Context, states: &HashMap<u32, bool>) {
                 gl.disable(*state);
             }
         }
+    }
+}
+
+impl MainWindowRef for AppWindow {
+    fn window(&self) -> &winit::window::Window {
+        &self.window
+    }
+
+    fn pre_render(&self) {}
+
+    fn post_render(&self) {}
+
+    fn resize(&self, size: PhysicalSize<u32>) -> LogicalSize<f32> {
+        let scale = self.window.scale_factor();
+        size.to_logical(scale)
     }
 }

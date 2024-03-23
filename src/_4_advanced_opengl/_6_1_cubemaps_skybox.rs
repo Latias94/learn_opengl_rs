@@ -3,6 +3,7 @@ use crate::resources::load_binary;
 use crate::shader::MyShader;
 use crate::window::{run, AppContext, Application, WindowInitInfo};
 use crate::{resources, texture};
+use easy_imgui_window::easy_imgui::{Ui, UiBuilder};
 use glow::*;
 use image::GenericImageView;
 use nalgebra_glm as glm;
@@ -121,6 +122,12 @@ struct App {
     shader: MyShader,
     skybox_shader: MyShader,
     camera: Camera,
+}
+
+impl UiBuilder for App {
+    fn do_ui(&mut self, ui: &Ui<Self>) {
+        ui.show_demo_window(None);
+    }
 }
 
 impl Application for App {
