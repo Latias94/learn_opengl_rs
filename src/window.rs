@@ -17,7 +17,7 @@ pub struct Game<A: Application> {
     ctx: AppContext,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
 #[derive(Debug)]
 pub enum UserEvent {
     Redraw(Duration),
@@ -25,6 +25,7 @@ pub enum UserEvent {
 
 pub trait Application: Sized {
     async unsafe fn new(_ctx: &AppContext) -> Self;
+    #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     fn ui(&mut self, _state: &AppState, _egui_ctx: &egui::Context) {}
     unsafe fn render(&mut self, _ctx: &AppContext) {}
     unsafe fn update(&mut self, _update_delta_time: f32) {}
@@ -48,7 +49,7 @@ pub struct WindowInitInfo {
 }
 
 pub struct AppContext {
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     pub egui_glow: egui_glow::EguiGlow,
     pub gl_context: GLContext,
     pub app_state: AppState,
@@ -173,9 +174,13 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         let major = init_info.major;
         let minor = init_info.minor;
 
+        #[cfg(feature = "egui-support")]
         let event_loop = winit::event_loop::EventLoopBuilder::<UserEvent>::with_user_event()
             .build()
             .unwrap();
+        #[cfg(not(feature = "egui-support"))]
+        let event_loop = winit::event_loop::EventLoop::new().unwrap();
+
         let window_builder = winit::window::WindowBuilder::new()
             .with_title(title.as_str())
             .with_inner_size(winit::dpi::LogicalSize::new(width, height));
@@ -252,7 +257,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
     #[allow(clippy::arc_with_non_send_sync)]
     let gl = Arc::new(gl);
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     let egui_glow = {
         let egui_glow = egui_glow::EguiGlow::new(&event_loop, gl.clone(), None, None);
         let event_loop_proxy = egui::mutex::Mutex::new(event_loop.create_proxy());
@@ -284,7 +289,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             update_delta_time: 0.0,
             render_delta_time: 0.0,
         },
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
         egui_glow,
         gl_state: GlState::default(),
     };
@@ -320,7 +325,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             ctx.app_state.render_delta_time =
                 (now - ctx.app_state.last_render_time).num_milliseconds() as f32 / 1000.0;
             ctx.app_state.last_render_time = chrono::Utc::now();
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
             ctx.egui_glow.run(&g.window, |egui_ctx| {
                 app.ui(&ctx.app_state, egui_ctx);
             });
@@ -333,16 +338,14 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 // https://github.com/emilk/egui/issues/93#issuecomment-907745330
                 // egui will not recover gl state changes, like gl.enable(DEPTH_TEST)
                 record_gl_states(&ctx.gl_context.gl, &mut ctx.gl_state.states);
+
+                #[cfg(feature = "egui-support")]
                 ctx.egui_glow.paint(&g.window);
+
                 use game_loop::TimeTrait;
                 use glutin::surface::GlSurface;
 
-                g.game
-                    .ctx
-                    .gl_context
-                    .gl_surface
-                    .swap_buffers(&gl_context)
-                    .unwrap();
+                ctx.gl_context.gl_surface.swap_buffers(&gl_context).unwrap();
 
                 let dt = TIME_STEP.as_secs_f64() - game_loop::Time::now().sub(&g.current_instant());
                 if dt > 0.0 {
@@ -362,7 +365,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 {
                     log::info!("Exiting");
                     app.exit(ctx);
-                    #[cfg(not(target_arch = "wasm32"))]
+                    #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
                     ctx.egui_glow.destroy();
                     g.exit();
                     return;
@@ -378,7 +381,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 return;
             }
 
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
             if let winit::event::Event::WindowEvent { event, .. } = &event {
                 let event_response = ctx.egui_glow.on_window_event(&g.window, event);
                 if event_response.repaint {

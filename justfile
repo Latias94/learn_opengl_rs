@@ -8,7 +8,7 @@ build-web:
 
 run TUTORIAL="1_1_1":
   @echo 'Debug mode, Run winit with TUTORIAL={{TUTORIAL}}'
-  RUST_LOG=info cargo run -- {{TUTORIAL}}
+  RUST_LOG=info cargo run --features egui-support -- {{TUTORIAL}}
 
 rrun TUTORIAL="1_1_1":
   @echo 'Release mode, Run winit with TUTORIAL={{TUTORIAL}}'

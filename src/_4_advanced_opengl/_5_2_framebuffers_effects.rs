@@ -1,6 +1,6 @@
 use crate::camera::Camera;
 use crate::shader::MyShader;
-use crate::window::{run, AppContext, AppState, Application, WindowInitInfo};
+use crate::window::{run, AppContext, Application, WindowInitInfo};
 use crate::{resources, texture};
 use glow::*;
 use nalgebra_glm as glm;
@@ -376,7 +376,8 @@ impl Application for App {
         }
     }
 
-    fn ui(&mut self, _state: &AppState, egui_ctx: &egui::Context) {
+    #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
+    fn ui(&mut self, _state: &crate::window::AppState, egui_ctx: &egui::Context) {
         egui::Window::new("Change states").show(egui_ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label("Press Q/E to change effects");
