@@ -1,5 +1,6 @@
 use glow::HasContext;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use typed_builder::TypedBuilder;
@@ -51,13 +52,15 @@ pub struct WindowInitInfo {
 pub struct AppContext {
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     pub egui_glow: egui_glow::EguiGlow,
+    pub imgui_renderer: easy_imgui_window::easy_imgui_renderer::Renderer,
+    pub imgui_status: easy_imgui_window::MainWindowStatus,
     pub gl_context: GLContext,
     pub app_state: AppState,
     pub gl_state: GlState,
 }
 
 pub struct GLContext {
-    pub gl: Arc<glow::Context>,
+    pub gl: Rc<glow::Context>,
 
     #[cfg(not(target_arch = "wasm32"))]
     pub gl_surface: glutin::surface::Surface<glutin::surface::WindowSurface>,
@@ -255,7 +258,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         }
     }
     #[allow(clippy::arc_with_non_send_sync)]
-    let gl = Arc::new(gl);
+    let gl = Rc::new(gl);
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     let egui_glow = {
@@ -271,13 +274,17 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             });
         egui_glow
     };
-
+    let the_gl = GLContext {
+        gl,
+        #[cfg(not(target_arch = "wasm32"))]
+        gl_surface,
+    };
+    let mut imgui_renderer = easy_imgui_window::easy_imgui_renderer::Renderer::new(the_gl.gl.clone()).unwrap();
+    imgui_renderer.set_background_color(None);
     let ctx = AppContext {
-        gl_context: GLContext {
-            gl,
-            #[cfg(not(target_arch = "wasm32"))]
-            gl_surface,
-        },
+        imgui_renderer,
+        imgui_status: easy_imgui_window::MainWindowStatus::default(),
+        gl_context: the_gl,
         app_state: AppState {
             suggested_shader_version: shader_version,
             width,
@@ -333,6 +340,8 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             restore_gl_states(&ctx.gl_context.gl, &mut ctx.gl_state.states);
             app.render(ctx);
 
+            ctx.imgui_renderer.do_frame(&mut Demo);
+
             #[cfg(not(target_arch = "wasm32"))]
             {
                 // https://github.com/emilk/egui/issues/93#issuecomment-907745330
@@ -357,6 +366,13 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             let input = &mut g.game.input;
             let app = &mut g.game.app;
             let ctx = &mut g.game.ctx;
+
+            let imgui = ctx.imgui_renderer.imgui().set_current();
+            let imgui_captured = imgui.want_capture_keyboard() || imgui.want_capture_mouse();
+            let _ = easy_imgui_window::do_event(&*g.window, &mut ctx.imgui_renderer, &mut ctx.imgui_status, &mut Demo, event);
+            if imgui_captured {
+                return;
+            }
 
             if input.update(event) {
                 if input.key_pressed(winit::keyboard::KeyCode::Escape)
@@ -392,7 +408,13 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
     )
     .unwrap();
 }
+struct Demo;
 
+impl easy_imgui_window::easy_imgui::UiBuilder for Demo {
+    fn do_ui(&mut self, ui: &easy_imgui_window::easy_imgui::Ui<Self>) {
+        ui.show_demo_window(None);
+    }
+}
 #[allow(dead_code)]
 fn record_gl_states(gl: &glow::Context, states: &mut HashMap<u32, bool>) {
     unsafe {
