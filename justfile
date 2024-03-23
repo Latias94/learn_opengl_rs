@@ -12,7 +12,7 @@ run TUTORIAL="1_1_1":
 
 rrun TUTORIAL="1_1_1":
   @echo 'Release mode, Run winit with TUTORIAL={{TUTORIAL}}'
-  RUST_LOG=info cargo run -r -- {{TUTORIAL}}
+  RUST_LOG=info cargo run -r  --features egui-support -- {{TUTORIAL}}
 
 web TUTORIAL="1_2_1":
   @echo 'Build and serve for web'
