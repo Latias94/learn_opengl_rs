@@ -1,5 +1,6 @@
 use glow::{Context, HasContext};
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use typed_builder::TypedBuilder;
@@ -32,6 +33,8 @@ pub trait Application: Sized {
             ui.label(format!("FPS: {:.1}", 1.0 / state.render_delta_time));
         });
     }
+    #[cfg(feature = "imgui-support")]
+    fn do_ui(&mut self, _ui: &easy_imgui_window::easy_imgui::Ui<EasyImGuiFacade<Self>>) {}
     unsafe fn render(&mut self, _ctx: &AppContext) {}
     unsafe fn update(&mut self, _update_delta_time: f32) {}
     unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
@@ -61,13 +64,17 @@ pub struct WindowInitInfo {
 pub struct AppContext {
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     pub egui_glow: egui_glow::EguiGlow,
+    #[cfg(feature = "imgui-support")]
+    pub imgui_renderer: easy_imgui_window::easy_imgui_renderer::Renderer,
+    #[cfg(feature = "imgui-support")]
+    pub imgui_status: easy_imgui_window::MainWindowStatus,
     pub gl_context: GLContext,
     pub app_state: AppState,
     pub gl_state: GlState,
 }
 
 pub struct GLContext {
-    pub gl: Arc<glow::Context>,
+    pub gl: Rc<glow::Context>,
 
     #[cfg(not(target_arch = "wasm32"))]
     pub gl_surface: glutin::surface::Surface<glutin::surface::WindowSurface>,
@@ -331,7 +338,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         }
     }
     #[allow(clippy::arc_with_non_send_sync)]
-    let gl = Arc::new(gl);
+    let gl = Rc::new(gl);
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     let egui_glow = {
@@ -347,8 +354,17 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             });
         egui_glow
     };
-
+    #[cfg(feature = "imgui-support")]
+    let imgui_renderer = {
+        let mut r = easy_imgui_window::easy_imgui_renderer::Renderer::new(gl.clone()).unwrap();
+        r.set_background_color(None);
+        r
+    };
     let ctx = AppContext {
+        #[cfg(feature = "imgui-support")]
+        imgui_renderer,
+        #[cfg(feature = "imgui-support")]
+        imgui_status: easy_imgui_window::MainWindowStatus::default(),
         gl_context: GLContext {
             gl,
             #[cfg(not(target_arch = "wasm32"))]
@@ -431,6 +447,9 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             //     }
             // }
 
+            #[cfg(feature = "imgui-support")]
+            ctx.imgui_renderer.do_frame(&mut EasyImGuiFacade(app));
+
             #[cfg(not(target_arch = "wasm32"))]
             {
                 // https://github.com/emilk/egui/issues/93#issuecomment-907745330
@@ -455,6 +474,22 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             let input = &mut g.game.input;
             let app = &mut g.game.app;
             let ctx = &mut g.game.ctx;
+
+            #[cfg(feature = "imgui-support")]
+            {
+                let ui_wants = easy_imgui_window::do_event(
+                    &mut &*g.window,
+                    &mut ctx.imgui_renderer,
+                    &mut ctx.imgui_status,
+                    &mut EasyImGuiFacade(app),
+                    event,
+                    easy_imgui_window::EventFlags::DoNotRender
+                );
+                if ui_wants.want_capture_keyboard || ui_wants.want_capture_mouse {
+                    //TODO: separate mouse/keyboard capture
+                    return;
+                }
+            }
 
             if input.update(event) {
                 if input.key_pressed(winit::keyboard::KeyCode::Escape)
@@ -492,6 +527,16 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         },
     )
     .unwrap();
+}
+
+#[cfg(feature = "imgui-support")]
+pub struct EasyImGuiFacade<'a, A>(&'a mut A);
+
+#[cfg(feature = "imgui-support")]
+impl<'a, A: Application> easy_imgui_window::easy_imgui::UiBuilder for EasyImGuiFacade<'a, A> {
+    fn do_ui(&mut self, ui: &easy_imgui_window::easy_imgui::Ui<Self>) {
+        self.0.do_ui(ui);
+    }
 }
 
 #[allow(dead_code)]
