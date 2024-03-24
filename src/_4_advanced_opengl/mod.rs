@@ -27,3 +27,6 @@ pub use _5_3_framebuffers_exercise_1::main_4_5_3;
 
 mod _6_1_cubemaps_skybox;
 pub use _6_1_cubemaps_skybox::main_4_6_1;
+
+mod _6_2_cubemaps_environment_mapping;
+pub use _6_2_cubemaps_environment_mapping::main_4_6_2;
