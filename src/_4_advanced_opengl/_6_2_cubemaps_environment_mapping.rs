@@ -159,7 +159,7 @@ impl Application for App {
         gl.enable_vertex_attrib_array(0);
         gl.vertex_attrib_pointer_f32(
             1,
-            2,
+            3,
             FLOAT,
             false,
             6 * size_of::<f32>() as i32,
