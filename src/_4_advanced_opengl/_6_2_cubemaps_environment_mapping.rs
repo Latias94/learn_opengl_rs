@@ -2,7 +2,6 @@ use crate::camera::Camera;
 use crate::resources::load_binary;
 use crate::shader::MyShader;
 use crate::window::{run, AppContext, Application, WindowInitInfo};
-use crate::{resources, texture};
 use glow::*;
 use image::GenericImageView;
 use nalgebra_glm as glm;
