@@ -36,3 +36,6 @@ pub use _8_1_advanced_glsl_ubo::main_4_8_1;
 
 mod _9_1_geometry_shader_houses;
 pub use _9_1_geometry_shader_houses::main_4_9_1;
+
+mod _9_2_geometry_shader_exploding;
+pub use _9_2_geometry_shader_exploding::main_4_9_2;

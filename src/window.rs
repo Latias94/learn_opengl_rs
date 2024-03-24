@@ -105,6 +105,24 @@ impl AppContext {
         self.app_state.render_delta_time
     }
 
+    #[allow(dead_code)]
+    pub fn last_update_time(&self) -> chrono::DateTime<chrono::Utc> {
+        self.app_state.last_update_time
+    }
+
+    #[allow(dead_code)]
+    pub fn last_render_time(&self) -> chrono::DateTime<chrono::Utc> {
+        self.app_state.last_render_time
+    }
+    
+    pub fn elapsed_time(&self) -> chrono::Duration {
+        chrono::Utc::now() - self.app_state.start
+    }
+    
+    pub fn elapsed_time_secs(&self) -> f32 {
+        self.elapsed_time().num_milliseconds() as f32 / 1000.0
+    }
+
     pub fn suggested_shader_version(&self) -> &'static str {
         self.app_state.suggested_shader_version
     }
