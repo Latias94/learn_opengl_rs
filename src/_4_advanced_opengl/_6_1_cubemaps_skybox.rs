@@ -146,8 +146,6 @@ impl Application for App {
         let camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
 
         gl.enable(DEPTH_TEST);
-        // gl.depth_func(LESS);
-        gl.depth_func(ALWAYS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
         //  cube vao
         let cube_vbo = gl.create_buffer().expect("Cannot create vbo buffer");
@@ -231,6 +229,7 @@ impl Application for App {
         gl.clear_color(0.1, 0.1, 0.1, 1.0);
         gl.clear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT);
 
+        // draw scene as normal
         self.shader.use_shader(gl);
         let projection = glm::perspective(
             ctx.width() as f32 / ctx.height() as f32,
@@ -254,14 +253,21 @@ impl Application for App {
         self.shader.set_mat4(gl, "model", &model);
         gl.draw_arrays(TRIANGLES, 0, 36);
 
-        // skybox
+        // draw skybox as last
+        // change depth function so depth test passes when values are equal to depth buffer's content
+        gl.depth_func(LEQUAL);
+        self.skybox_shader.use_shader(gl);
+        let view = glm::mat3_to_mat4(&glm::mat4_to_mat3(&view));
+        self.skybox_shader.set_mat4(gl, "view", &view);
+        self.skybox_shader.set_mat4(gl, "projection", &projection);
+        // skybox cube
         gl.bind_vertex_array(Some(self.skybox_vao));
-        gl.bind_texture(TEXTURE_2D, Some(self.skybox_texture));
-        let model = glm::Mat4::identity();
-        self.shader.set_mat4(gl, "model", &model);
-        gl.draw_arrays(TRIANGLES, 0, 6);
+        gl.active_texture(TEXTURE0);
+        gl.bind_texture(TEXTURE_CUBE_MAP, Some(self.skybox_texture));
+        gl.draw_arrays(TRIANGLES, 0, 36);
 
         gl.bind_vertex_array(None);
+        gl.depth_func(LESS);
     }
 
     unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
@@ -296,7 +302,6 @@ async unsafe fn load_cubemap(gl: &Context, faces: &[&str]) -> Texture {
     for (i, face) in faces.iter().enumerate() {
         let data = load_binary(face).await.expect("Failed to load texture");
         let img = image::load_from_memory(&data).expect("Failed to load image");
-        let img = img.flipv();
         let (width, height) = img.dimensions();
         let data = img.to_rgb8();
         gl.tex_image_2d(

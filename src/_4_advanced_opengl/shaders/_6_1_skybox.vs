@@ -9,6 +9,7 @@ uniform mat4 view;
 void main()
 {
     TexCoords = aPos;
+    // always set z to 1.0, gl.depth_func = GL_LEQUAL
     vec4 pos = projection * view * vec4(aPos, 1.0);
     gl_Position = pos.xyww;
 }
