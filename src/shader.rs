@@ -1,5 +1,5 @@
 use crate::resources;
-use glow::{Context, HasContext, Program, FRAGMENT_SHADER, VERTEX_SHADER};
+use glow::{Context, HasContext, Program, FRAGMENT_SHADER, GEOMETRY_SHADER, VERTEX_SHADER};
 
 pub struct MyShader {
     program: Program,
@@ -11,6 +11,7 @@ pub enum ShaderType {
     Fragment,
     #[allow(dead_code)]
     Compute,
+    Geometry,
 }
 
 impl MyShader {
@@ -71,6 +72,61 @@ impl MyShader {
             gl.detach_shader(program, fragment);
             gl.delete_shader(vertex);
             gl.delete_shader(fragment);
+        }
+
+        Ok(Self { program })
+    }
+
+    pub fn new_with_geometry_from_source(
+        gl: &Context,
+        vertex_shader: &str,
+        fragment_shader: &str,
+        geometry_shader: &str,
+        shader_version: Option<&str>,
+    ) -> Result<Self, String> {
+        let vertex_shader =
+            Self::modify_shader_to_support_webgl(vertex_shader, shader_version, ShaderType::Vertex);
+        let fragment_shader = Self::modify_shader_to_support_webgl(
+            fragment_shader,
+            shader_version,
+            ShaderType::Fragment,
+        );
+        let geometry_shader = Self::modify_shader_to_support_webgl(
+            geometry_shader,
+            shader_version,
+            ShaderType::Geometry,
+        );
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            log::info!("vs: \n{}\n\nfs: \n{}", vertex_shader, fragment_shader);
+        }
+        let program = unsafe { gl.create_program().expect("Failed to create program") };
+
+        let (vertex, fragment, geometry) = (
+            Self::compile_shader(gl, VERTEX_SHADER, &vertex_shader)?,
+            Self::compile_shader(gl, FRAGMENT_SHADER, &fragment_shader)?,
+            Self::compile_shader(gl, GEOMETRY_SHADER, &geometry_shader)?,
+        );
+
+        unsafe {
+            gl.attach_shader(program, vertex);
+            gl.attach_shader(program, fragment);
+            gl.attach_shader(program, geometry);
+            gl.link_program(program);
+        }
+
+        if !unsafe { gl.get_program_link_status(program) } {
+            return Err(unsafe { gl.get_program_info_log(program) });
+        }
+
+        unsafe {
+            gl.detach_shader(program, vertex);
+            gl.detach_shader(program, fragment);
+            gl.detach_shader(program, geometry);
+            gl.delete_shader(vertex);
+            gl.delete_shader(fragment);
+            gl.delete_shader(geometry);
         }
 
         Ok(Self { program })

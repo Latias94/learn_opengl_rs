@@ -33,3 +33,6 @@ pub use _6_2_cubemaps_environment_mapping::main_4_6_2;
 
 mod _8_1_advanced_glsl_ubo;
 pub use _8_1_advanced_glsl_ubo::main_4_8_1;
+
+mod _9_1_geometry_shader_houses;
+pub use _9_1_geometry_shader_houses::main_4_9_1;
