@@ -144,7 +144,7 @@ impl Mesh {
                     } // _ => panic!("Unknown texture type"),
                 };
                 // shader.set_int(gl, &format!("material.{}", name), i as i32);
-                shader.set_int(gl, &name, i as i32);
+                shader.try_set_int(gl, &name, i as i32);
                 gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw()));
             }
 

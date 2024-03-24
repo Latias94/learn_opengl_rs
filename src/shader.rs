@@ -2,6 +2,7 @@ use crate::resources;
 use glow::{Context, HasContext, Program, FRAGMENT_SHADER, GEOMETRY_SHADER, VERTEX_SHADER};
 
 pub struct MyShader {
+    name: Option<String>,
     program: Program,
 }
 
@@ -74,7 +75,10 @@ impl MyShader {
             gl.delete_shader(fragment);
         }
 
-        Ok(Self { program })
+        Ok(Self {
+            name: None,
+            program,
+        })
     }
 
     pub fn new_with_geometry_from_source(
@@ -129,7 +133,14 @@ impl MyShader {
             gl.delete_shader(geometry);
         }
 
-        Ok(Self { program })
+        Ok(Self {
+            name: None,
+            program,
+        })
+    }
+
+    pub fn set_name(&mut self, name: &str) {
+        self.name = Some(name.to_string());
     }
 
     pub fn use_shader(&self, gl: &Context) {
@@ -143,7 +154,7 @@ impl MyShader {
         unsafe {
             let location = gl
                 .get_uniform_location(self.program, name)
-                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
+                .unwrap_or_else(|| panic!("Cannot find uniform location {} {:?}", name, self.name));
             gl.uniform_1_i32(Some(&location), value as i32);
         }
     }
@@ -152,16 +163,27 @@ impl MyShader {
         unsafe {
             let location = gl
                 .get_uniform_location(self.program, name)
-                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
+                .unwrap_or_else(|| panic!("Cannot find uniform location {} {:?}", name, self.name));
             gl.uniform_1_i32(Some(&location), value);
         }
+    }
+
+    pub fn try_set_int(&self, gl: &Context, name: &str, value: i32) -> bool {
+        unsafe {
+            let location = gl.get_uniform_location(self.program, name);
+            if let Some(location) = location {
+                gl.uniform_1_i32(Some(&location), value);
+                return true;
+            }
+        }
+        false
     }
 
     pub fn set_float(&self, gl: &Context, name: &str, value: f32) {
         unsafe {
             let location = gl
                 .get_uniform_location(self.program, name)
-                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
+                .unwrap_or_else(|| panic!("Cannot find uniform location {} {:?}", name, self.name));
             gl.uniform_1_f32(Some(&location), value);
         }
     }
@@ -170,7 +192,7 @@ impl MyShader {
         unsafe {
             let location = gl
                 .get_uniform_location(self.program, name)
-                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
+                .unwrap_or_else(|| panic!("Cannot find uniform location {} {:?}", name, self.name));
             gl.uniform_matrix_4_f32_slice(Some(&location), false, value.as_slice());
         }
     }
@@ -179,7 +201,7 @@ impl MyShader {
         unsafe {
             let location = gl
                 .get_uniform_location(self.program, name)
-                .unwrap_or_else(|| panic!("Cannot find uniform location {}", name));
+                .unwrap_or_else(|| panic!("Cannot find uniform location {} {:?}", name, self.name));
             gl.uniform_3_f32(Some(&location), value.x, value.y, value.z);
         }
     }

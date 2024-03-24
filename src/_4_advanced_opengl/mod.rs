@@ -39,3 +39,6 @@ pub use _9_1_geometry_shader_houses::main_4_9_1;
 
 mod _9_2_geometry_shader_exploding;
 pub use _9_2_geometry_shader_exploding::main_4_9_2;
+
+mod _9_3_geometry_shader_normals;
+pub use _9_3_geometry_shader_normals::main_4_9_3;
