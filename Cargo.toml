@@ -30,6 +30,7 @@ anyhow = "1"
 tobj = { version = "4", features = [
     "async",
 ] }
+rand = "0.8"
 
 [target.'cfg(not(any(target_arch = "wasm32")))'.dependencies]
 # OpenGL context

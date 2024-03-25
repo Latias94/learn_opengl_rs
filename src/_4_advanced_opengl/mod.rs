@@ -42,3 +42,9 @@ pub use _9_2_geometry_shader_exploding::main_4_9_2;
 
 mod _9_3_geometry_shader_normals;
 pub use _9_3_geometry_shader_normals::main_4_9_3;
+
+mod _10_1_instancing_quads;
+pub use _10_1_instancing_quads::main_4_10_1;
+
+mod _10_2_asteroids;
+pub use _10_2_asteroids::main_4_10_2;
