@@ -236,11 +236,6 @@ impl Application for App {
         }
     }
 
-    unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
-        let gl = ctx.gl();
-        gl.viewport(0, 0, width as i32, height as i32);
-    }
-
     unsafe fn process_input(&mut self, _ctx: &AppContext, input: &WinitInputHelper) {
         let delta_time = input.delta_time().unwrap_or(Duration::new(0, 0));
         let delta_time = delta_time.as_secs_f32();

@@ -209,11 +209,6 @@ impl Application for App {
         gl.draw_arrays(TRIANGLES, 0, 36);
     }
 
-    unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
-        let gl = ctx.gl();
-        gl.viewport(0, 0, width as i32, height as i32);
-    }
-
     unsafe fn process_input(&mut self, _ctx: &AppContext, input: &WinitInputHelper) {
         self.camera.process_keyboard_with_input(input);
         self.camera.process_mouse_with_input(input, true);

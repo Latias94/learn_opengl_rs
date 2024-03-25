@@ -246,11 +246,6 @@ impl Application for App {
         }
     }
 
-    unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
-        let gl = ctx.gl();
-        gl.viewport(0, 0, width as i32, height as i32);
-    }
-
     unsafe fn process_input(&mut self, ctx: &AppContext, input: &WinitInputHelper) {
         let camera_speed = 2.5f32 * ctx.update_delta_time();
         if input.key_held(KeyCode::KeyW) {

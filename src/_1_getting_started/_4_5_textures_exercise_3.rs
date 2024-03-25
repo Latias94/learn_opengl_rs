@@ -192,11 +192,6 @@ impl Application for App {
         gl.draw_elements(TRIANGLES, 6, UNSIGNED_INT, 0);
     }
 
-    unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
-        let gl = ctx.gl();
-        gl.viewport(0, 0, width as i32, height as i32);
-    }
-
     unsafe fn exit(&mut self, ctx: &AppContext) {
         let gl = ctx.gl();
 

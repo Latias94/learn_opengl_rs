@@ -26,10 +26,20 @@ pub enum UserEvent {
 pub trait Application: Sized {
     async unsafe fn new(_ctx: &AppContext) -> Self;
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
-    fn ui(&mut self, _state: &AppState, _egui_ctx: &egui::Context) {}
+    fn ui(&mut self, state: &AppState, egui_ctx: &egui::Context) {
+        // show fps by default
+        egui::Window::new("Info").show(egui_ctx, |ui| {
+            ui.label(format!("FPS: {:.1}", 1.0 / state.render_delta_time));
+            let elapsed_time = state.elapsed_time_secs();
+            ui.label(format!("Elapsed time: {:.1}s", elapsed_time));
+        });
+    }
     unsafe fn render(&mut self, _ctx: &AppContext) {}
     unsafe fn update(&mut self, _update_delta_time: f32) {}
-    unsafe fn resize(&mut self, _ctx: &AppContext, _width: u32, _height: u32) {}
+    unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
+        let gl = ctx.gl();
+        gl.viewport(0, 0, width as i32, height as i32);
+    }
     unsafe fn process_input(&mut self, _ctx: &AppContext, _input: &WinitInputHelper) {}
     unsafe fn exit(&mut self, _ctx: &AppContext) {}
 }
@@ -80,6 +90,7 @@ pub struct GlState {
     pub states: HashMap<u32, bool>,
 }
 
+#[allow(dead_code)]
 impl AppContext {
     pub fn gl(&self) -> &glow::Context {
         &self.gl_context.gl
@@ -93,7 +104,6 @@ impl AppContext {
         self.app_state.width
     }
 
-    #[allow(dead_code)]
     pub fn scale_factor(&self) -> f64 {
         self.app_state.scale_factor
     }
@@ -105,26 +115,59 @@ impl AppContext {
         self.app_state.render_delta_time
     }
 
-    #[allow(dead_code)]
     pub fn last_update_time(&self) -> chrono::DateTime<chrono::Utc> {
         self.app_state.last_update_time
     }
 
-    #[allow(dead_code)]
     pub fn last_render_time(&self) -> chrono::DateTime<chrono::Utc> {
         self.app_state.last_render_time
     }
-    
+
     pub fn elapsed_time(&self) -> chrono::Duration {
-        chrono::Utc::now() - self.app_state.start
+        self.app_state.elapsed_time()
     }
-    
+
     pub fn elapsed_time_secs(&self) -> f32 {
         self.elapsed_time().num_milliseconds() as f32 / 1000.0
     }
 
     pub fn suggested_shader_version(&self) -> &'static str {
         self.app_state.suggested_shader_version
+    }
+}
+
+#[allow(dead_code)]
+impl AppState {
+    pub fn start(&self) -> chrono::DateTime<chrono::Utc> {
+        self.start
+    }
+
+    pub fn update_delta_time(&self) -> f32 {
+        self.update_delta_time
+    }
+
+    pub fn render_delta_time(&self) -> f32 {
+        self.render_delta_time
+    }
+
+    pub fn last_update_time(&self) -> chrono::DateTime<chrono::Utc> {
+        self.last_update_time
+    }
+
+    pub fn last_render_time(&self) -> chrono::DateTime<chrono::Utc> {
+        self.last_render_time
+    }
+
+    pub fn elapsed_time(&self) -> chrono::Duration {
+        chrono::Utc::now() - self.start
+    }
+
+    pub fn elapsed_time_secs(&self) -> f32 {
+        self.elapsed_time().num_milliseconds() as f32 / 1000.0
+    }
+
+    pub fn suggested_shader_version(&self) -> &'static str {
+        self.suggested_shader_version
     }
 }
 

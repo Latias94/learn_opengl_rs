@@ -35,7 +35,7 @@ impl Application for App {
         )
         .expect("Failed to create program");
         shader.set_name("default");
-        
+
         let mut normal_shader = MyShader::new_with_geometry_from_source(
             gl,
             include_str!("shaders/_9_3_normal_visualization.vs"),
@@ -90,11 +90,6 @@ impl Application for App {
         self.normal_shader.set_mat4(gl, "view", &view);
         self.normal_shader.set_mat4(gl, "model", &model);
         self.model.draw(gl, &self.normal_shader);
-    }
-
-    unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
-        let gl = ctx.gl();
-        gl.viewport(0, 0, width as i32, height as i32);
     }
 
     unsafe fn process_input(&mut self, _ctx: &AppContext, input: &WinitInputHelper) {
