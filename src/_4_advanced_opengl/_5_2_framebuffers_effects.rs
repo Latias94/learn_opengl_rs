@@ -377,7 +377,12 @@ impl Application for App {
     }
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
-    fn ui(&mut self, _state: &crate::window::AppState, egui_ctx: &egui::Context) {
+    fn ui(
+        &mut self,
+        _state: &crate::window::AppState,
+        _gl_ctx: &crate::window::GLContext,
+        egui_ctx: &egui::Context,
+    ) {
         egui::Window::new("Change states").show(egui_ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label("Press Q/E to change effects");

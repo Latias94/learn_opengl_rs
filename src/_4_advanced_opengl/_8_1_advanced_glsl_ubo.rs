@@ -179,7 +179,7 @@ impl Application for App {
         gl.buffer_sub_data_u8_slice(
             UNIFORM_BUFFER,
             0,
-            bytemuck::cast_slice(&projection.as_slice()),
+            bytemuck::cast_slice(projection.as_slice()),
         );
         gl.bind_buffer(UNIFORM_BUFFER, None);
 
@@ -207,7 +207,7 @@ impl Application for App {
         gl.buffer_sub_data_u8_slice(
             UNIFORM_BUFFER,
             size_of::<glm::Mat4>() as i32,
-            bytemuck::cast_slice(&view.as_slice()),
+            bytemuck::cast_slice(view.as_slice()),
         );
         gl.bind_buffer(UNIFORM_BUFFER, None);
 

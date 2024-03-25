@@ -48,3 +48,6 @@ pub use _10_1_instancing_quads::main_4_10_1;
 
 mod _10_2_asteroids;
 pub use _10_2_asteroids::main_4_10_2;
+
+mod _10_3_asteroids_instanced;
+pub use _10_3_asteroids_instanced::main_4_10_3;

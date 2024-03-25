@@ -8,9 +8,9 @@ use nalgebra_glm as glm;
 use rand::Rng;
 use winit_input_helper::WinitInputHelper;
 
-pub async unsafe fn main_4_10_2() {
+pub async unsafe fn main_4_10_3() {
     let init_info = WindowInitInfo::builder()
-        .title("Asteroids".to_string())
+        .title("Asteroids Instanced".to_string())
         .build();
     unsafe {
         run::<App>(init_info).await;
@@ -21,8 +21,10 @@ struct App {
     rock: Model,
     planet: Model,
     model_matrices: Vec<glm::Mat4>,
+    buffer: Buffer,
 
-    shader: MyShader,
+    asteroid_shader: MyShader,
+    planet_shader: MyShader,
     camera: Camera,
 }
 
@@ -30,15 +32,23 @@ impl Application for App {
     async unsafe fn new(ctx: &AppContext) -> Self {
         let gl = ctx.gl();
 
-        let shader = MyShader::new_from_source(
+        let asteroid_shader = MyShader::new_from_source(
             gl,
-            include_str!("shaders/_10_2_instancing.vs"),
-            include_str!("shaders/_10_2_instancing.fs"),
+            include_str!("shaders/_10_3_asteroids.vs"),
+            include_str!("shaders/_10_3_asteroids.fs"),
+            Some(ctx.suggested_shader_version()),
+        )
+        .expect("Failed to create program");
+        let planet_shader = MyShader::new_from_source(
+            gl,
+            include_str!("shaders/_10_3_planet.vs"),
+            include_str!("shaders/_10_3_planet.fs"),
             Some(ctx.suggested_shader_version()),
         )
         .expect("Failed to create program");
 
-        let camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 55.0));
+        let mut camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 155.0));
+        camera.set_speed(25.0);
 
         gl.enable(DEPTH_TEST);
 
@@ -53,14 +63,17 @@ impl Application for App {
 
         // generate a large list of semi-random model transformation matrices
         // ------------------------------------------------------------------
-        let amount = 2000;
+        let amount = 100000;
         let model_matrices = generate_matrices(amount);
+        let buffer = create_buffer(gl, &rock, &model_matrices);
 
         Self {
             rock,
             planet,
             model_matrices,
-            shader,
+            buffer,
+            asteroid_shader,
+            planet_shader,
             camera,
         }
     }
@@ -78,47 +91,62 @@ impl Application for App {
             1000.0, // change far plane to 1000.0
         );
         let view = self.camera.view_matrix();
-        self.shader.use_shader(gl);
-        self.shader.set_mat4(gl, "projection", &projection);
-        self.shader.set_mat4(gl, "view", &view);
+        self.asteroid_shader.use_shader(gl);
+        self.asteroid_shader.set_mat4(gl, "projection", &projection);
+        self.asteroid_shader.set_mat4(gl, "view", &view);
+        self.planet_shader.use_shader(gl);
+        self.planet_shader.set_mat4(gl, "projection", &projection);
+        self.planet_shader.set_mat4(gl, "view", &view);
 
         // draw planet
         let mut model = glm::Mat4::identity();
         model = glm::translate(&model, &glm::vec3(0.0, -3.0, 0.0));
         model = glm::scale(&model, &glm::vec3(4.0, 4.0, 4.0));
-        self.shader.set_mat4(gl, "model", &model);
-        self.planet.draw(gl, &self.shader);
+        self.planet_shader.set_mat4(gl, "model", &model);
+        self.planet.draw(gl, &self.planet_shader);
 
         // draw meteorites
-        for model in &self.model_matrices {
-            self.shader.set_mat4(gl, "model", model);
-            self.rock.draw(gl, &self.shader);
+        self.asteroid_shader.use_shader(gl);
+        gl.active_texture(TEXTURE0);
+        self.asteroid_shader.set_int(gl, "texture_diffuse1", 0);
+        gl.bind_texture(TEXTURE_2D, Some(self.rock.materials[0].textures[0].raw()));
+        for mesh in &self.rock.meshes {
+            gl.bind_vertex_array(Some(mesh.vao));
+            gl.draw_elements_instanced(
+                TRIANGLES,
+                mesh.indices.len() as i32,
+                UNSIGNED_INT,
+                0,
+                self.model_matrices.len() as i32,
+            );
+            gl.bind_vertex_array(None);
         }
-
-        gl.bind_vertex_array(None);
     }
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     fn ui(
         &mut self,
         state: &crate::window::AppState,
-        _gl_ctx: &crate::window::GLContext,
+        gl_ctx: &crate::window::GLContext,
         egui_ctx: &egui::Context,
     ) {
         // show fps by default
         egui::Window::new("Info").show(egui_ctx, |ui| {
             ui.label(format!("FPS: {:.1}", 1.0 / state.render_delta_time));
-            let elapsed_time = state.elapsed_time_secs();
-            ui.label(format!("Elapsed time: {:.1}s", elapsed_time));
             // slider to control asteroid count
             let mut amount = self.model_matrices.len() as f32;
             ui.add(
-                egui::Slider::new(&mut amount, 1000.0..=10000.0)
+                egui::Slider::new(&mut amount, 100000.0..=1000000.0)
                     .text("Asteroid count")
-                    .step_by(1000.0),
+                    .step_by(100000.0),
             );
             if amount != self.model_matrices.len() as f32 {
+                let gl = &gl_ctx.gl;
+                unsafe {
+                    gl.delete_buffer(self.buffer);
+                }
                 self.model_matrices = generate_matrices(amount as usize);
+                self.buffer = unsafe { create_buffer(gl, &self.rock, &self.model_matrices) };
             }
         });
     }
@@ -131,17 +159,65 @@ impl Application for App {
     unsafe fn exit(&mut self, ctx: &AppContext) {
         let gl = ctx.gl();
 
-        self.shader.delete(gl);
+        self.asteroid_shader.delete(gl);
+        self.planet_shader.delete(gl);
+        gl.delete_buffer(self.buffer);
 
         self.rock.delete(gl);
         self.planet.delete(gl);
     }
 }
 
+unsafe fn create_buffer(gl: &Context, rock: &Model, model_matrices: &[glm::Mat4]) -> Buffer {
+    // configure instanced array
+    // -------------------------
+    let buffer = gl.create_buffer().expect("Create buffer failed");
+    gl.bind_buffer(ARRAY_BUFFER, Some(buffer));
+    gl.buffer_data_u8_slice(
+        ARRAY_BUFFER,
+        bytemuck::cast_slice(model_matrices),
+        STATIC_DRAW,
+    );
+
+    // set transformation matrices as an instance vertex attribute (with divisor 1)
+    // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
+    // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
+    // -----------------------------------------------------------------------------------------------------------------------------------
+    for mesh in &rock.meshes {
+        let vao = mesh.vao;
+        gl.bind_vertex_array(Some(vao));
+        // 4 times vec4
+        let stride = std::mem::size_of::<glm::Mat4>() as i32;
+        let vec4_size = std::mem::size_of::<glm::Vec4>() as i32;
+        // set attribute pointers for matrix (4 times vec4)
+        // --------------------------------------------------
+        // first column
+        gl.vertex_attrib_pointer_f32(3, 4, FLOAT, false, stride, 0);
+        gl.enable_vertex_attrib_array(3);
+        // second column
+        gl.vertex_attrib_pointer_f32(4, 4, FLOAT, false, stride, vec4_size);
+        gl.enable_vertex_attrib_array(4);
+        // third column
+        gl.vertex_attrib_pointer_f32(5, 4, FLOAT, false, stride, 2 * vec4_size);
+        gl.enable_vertex_attrib_array(5);
+        // fourth column
+        gl.vertex_attrib_pointer_f32(6, 4, FLOAT, false, stride, 3 * vec4_size);
+        gl.enable_vertex_attrib_array(6);
+
+        gl.vertex_attrib_divisor(3, 1);
+        gl.vertex_attrib_divisor(4, 1);
+        gl.vertex_attrib_divisor(5, 1);
+        gl.vertex_attrib_divisor(6, 1);
+
+        gl.bind_vertex_array(None);
+    }
+    buffer
+}
+
 pub fn generate_matrices(amount: usize) -> Vec<glm::Mat4> {
     let mut model_matrices = Vec::with_capacity(amount);
-    let radius = 50.0;
-    let offset = 2.5;
+    let radius = 150.0;
+    let offset = 25.0;
     // initialize random seed
     let mut rng = rand::thread_rng();
 

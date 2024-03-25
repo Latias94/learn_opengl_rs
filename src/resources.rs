@@ -102,6 +102,7 @@ pub async fn load_obj(gl: &Context, file_name: &str) -> anyhow::Result<Model> {
             ..Default::default()
         },
         |p| async move {
+            log::info!("Loading material: {}", p);
             let material_relative_path = format!("{}/{}", model_directory_path, p);
             let mat_text = load_string(&material_relative_path).await.unwrap();
             tobj::load_mtl_buf(&mut BufReader::new(Cursor::new(mat_text)))
@@ -114,6 +115,7 @@ pub async fn load_obj(gl: &Context, file_name: &str) -> anyhow::Result<Model> {
         let mut textures = Vec::new();
         if let Some(p) = m.diffuse_texture {
             let path = format!("{}/{}", model_directory_path, p);
+            log::info!("Loading texture: {} for mat: {}", path, m.name);
             let diffuse = load_texture_with_type(gl, &path, TextureType::Diffuse).await?;
             textures.push(diffuse);
         }

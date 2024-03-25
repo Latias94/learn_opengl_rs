@@ -36,6 +36,9 @@ impl Application for App {
     async unsafe fn new(ctx: &AppContext) -> Self {
         let gl = ctx.gl();
 
+        #[cfg(target_arch = "wasm32")]
+        log::error!("WebGL2 doesn't support geometry shaders");
+
         let shader = MyShader::new_with_geometry_from_source(
             gl,
             include_str!("shaders/_9_1_geometry_shader.vs"),

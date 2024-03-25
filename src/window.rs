@@ -26,12 +26,10 @@ pub enum UserEvent {
 pub trait Application: Sized {
     async unsafe fn new(_ctx: &AppContext) -> Self;
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
-    fn ui(&mut self, state: &AppState, egui_ctx: &egui::Context) {
+    fn ui(&mut self, state: &AppState, _gl_ctx: &GLContext, egui_ctx: &egui::Context) {
         // show fps by default
         egui::Window::new("Info").show(egui_ctx, |ui| {
             ui.label(format!("FPS: {:.1}", 1.0 / state.render_delta_time));
-            let elapsed_time = state.elapsed_time_secs();
-            ui.label(format!("Elapsed time: {:.1}s", elapsed_time));
         });
     }
     unsafe fn render(&mut self, _ctx: &AppContext) {}
@@ -388,7 +386,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             ctx.app_state.last_render_time = chrono::Utc::now();
             #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
             ctx.egui_glow.run(&g.window, |egui_ctx| {
-                app.ui(&ctx.app_state, egui_ctx);
+                app.ui(&ctx.app_state, &ctx.gl_context, egui_ctx);
             });
 
             restore_gl_states(&ctx.gl_context.gl, &mut ctx.gl_state.states);

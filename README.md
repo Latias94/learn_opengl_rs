@@ -38,6 +38,13 @@ camera control etc.
 
 <p align="left">
   <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/4_3_2.png" width="32%" alt="4_3_2" />
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/4_5_2.png" width="32%" alt="4_5_2" />
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/4_6_2.png" width="32%" alt="4_6_2" />
+</p>
+<p align="left">
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/4_9_2.png" width="32%" alt="4_9_2" />
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/4_9_3.png" width="32%" alt="4_9_3" />
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/4_10_3.png" width="32%" alt="4_10_3" />
 </p>
 
 ## Notes
@@ -48,6 +55,7 @@ camera control etc.
 - I use `tobj` crate to load models, thus only support `.obj` format.
 - I use `include_str!` macro to load shaders for simplicity.
 - `egui` only used on desktop for now.
+- WebGL2 is not support geometry shader.
 
 ## Build
 
