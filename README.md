@@ -48,6 +48,9 @@ camera control etc.
 </p>
 
 ### [5. Advanced Lighting](https://github.com/Latias94/learn_opengl_rs/tree/main/src/_5_advanced_lighting)
+<p align="left">
+  <img src="https://github.com/Latias94/learn_opengl_rs/raw/HEAD/misc/screenshots/5_2_1.png" width="32%" alt="5_2_1" />
+</p>
 
 ## Notes
 
