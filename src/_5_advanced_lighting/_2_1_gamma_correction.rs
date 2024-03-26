@@ -219,7 +219,7 @@ async fn load_texture(
         gl.tex_image_2d(
             TEXTURE_2D,
             0,
-            (internal_format+1) as i32,
+            internal_format as i32,
             width as i32,
             height as i32,
             0,
