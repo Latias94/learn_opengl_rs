@@ -169,6 +169,14 @@ impl AppState {
     pub fn suggested_shader_version(&self) -> &'static str {
         self.suggested_shader_version
     }
+
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
 }
 
 pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
@@ -468,6 +476,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 }
 
                 app.process_input(ctx, input);
+                #[allow(clippy::needless_return)]
                 return;
             }
 
@@ -483,6 +492,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
     .unwrap();
 }
 
+#[allow(dead_code)]
 unsafe fn set_debug_callback(gl: &mut Context) {
     gl.debug_message_callback(|source, gltype, id, severity, message| {
         let source = match source {

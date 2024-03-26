@@ -188,6 +188,17 @@ impl MyShader {
         }
     }
 
+    pub fn try_set_float(&self, gl: &Context, name: &str, value: f32) -> bool {
+        unsafe {
+            let location = gl.get_uniform_location(self.program, name);
+            if let Some(location) = location {
+                gl.uniform_1_f32(Some(&location), value);
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn set_mat4(&self, gl: &Context, name: &str, value: &nalgebra_glm::Mat4) {
         unsafe {
             let location = gl
