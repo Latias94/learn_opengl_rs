@@ -57,7 +57,8 @@ camera control etc.
 - I use `tobj` crate to load models, thus only support `.obj` format.
 - I use `include_str!` macro to load shaders for simplicity.
 - `egui` only used on desktop for now.
-- WebGL2 is not support geometry shader.
+- WebGL2 is not support geometry shader (`4_9_1`) and interface blocks.
+- OpenGL debug messages are only available on desktop debug build.
 
 ## Build
 

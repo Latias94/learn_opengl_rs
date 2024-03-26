@@ -1,4 +1,4 @@
-use glow::HasContext;
+use glow::{Context, HasContext};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -267,12 +267,14 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         let raw_window_handle = window.as_ref().map(|window| window.raw_window_handle());
 
         let gl_display = gl_config.display();
-        let context_attributes = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::OpenGl(Some(glutin::context::Version {
-                major,
-                minor,
-            })))
-            .build(raw_window_handle);
+        let mut context_attributes = ContextAttributesBuilder::new().with_context_api(
+            ContextApi::OpenGl(Some(glutin::context::Version { major, minor })),
+        );
+        #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+        {
+            context_attributes = context_attributes.with_debug(true);
+        }
+        let context_attributes = context_attributes.build(raw_window_handle);
 
         let not_current_gl_context = unsafe {
             gl_display
@@ -291,8 +293,13 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
 
         let gl_context = not_current_gl_context.make_current(&gl_surface).unwrap();
 
-        let gl =
+        let mut gl =
             unsafe { glow::Context::from_loader_function_cstr(|s| gl_display.get_proc_address(s)) };
+
+        #[cfg(debug_assertions)]
+        {
+            set_debug_callback(&mut gl);
+        }
 
         gl_surface
             .set_swap_interval(&gl_context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))
@@ -391,14 +398,36 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 app.ui(&ctx.app_state, &ctx.gl_context, egui_ctx);
             });
 
-            restore_gl_states(&ctx.gl_context.gl, &mut ctx.gl_state.states);
+            let gl = &ctx.gl_context.gl;
+            restore_gl_states(gl, &ctx.gl_state.states);
             app.render(ctx);
+
+            // we have debug callback already
+            // #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+            // {
+            //     let mut error_code = gl.get_error();
+            //     while error_code != glow::NO_ERROR {
+            //         let prefix = match error_code {
+            //             glow::INVALID_ENUM => "INVALID_ENUM",
+            //             glow::INVALID_VALUE => "INVALID_VALUE",
+            //             glow::INVALID_OPERATION => "INVALID_OPERATION",
+            //             glow::STACK_OVERFLOW => "STACK_OVERFLOW",
+            //             glow::STACK_UNDERFLOW => "STACK_UNDERFLOW",
+            //             glow::OUT_OF_MEMORY => "OUT_OF_MEMORY",
+            //             glow::INVALID_FRAMEBUFFER_OPERATION => "INVALID_FRAMEBUFFER_OPERATION",
+            //             glow::CONTEXT_LOST => "CONTEXT_LOST",
+            //             _ => "UNKNOWN_ERROR",
+            //         };
+            //         log::error!("OpenGL Error ({}): {:?}", prefix, error_code);
+            //         error_code = gl.get_error();
+            //     }
+            // }
 
             #[cfg(not(target_arch = "wasm32"))]
             {
                 // https://github.com/emilk/egui/issues/93#issuecomment-907745330
                 // egui will not recover gl state changes, like gl.enable(DEPTH_TEST)
-                record_gl_states(&ctx.gl_context.gl, &mut ctx.gl_state.states);
+                record_gl_states(gl, &mut ctx.gl_state.states);
 
                 #[cfg(feature = "egui-support")]
                 ctx.egui_glow.paint(&g.window);
@@ -452,6 +481,71 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         },
     )
     .unwrap();
+}
+
+unsafe fn set_debug_callback(gl: &mut Context) {
+    gl.debug_message_callback(|source, gltype, id, severity, message| {
+        let source = match source {
+            glow::DEBUG_SOURCE_API => "API",
+            glow::DEBUG_SOURCE_WINDOW_SYSTEM => "Window System",
+            glow::DEBUG_SOURCE_SHADER_COMPILER => "Shader Compiler",
+            glow::DEBUG_SOURCE_THIRD_PARTY => "Third Party",
+            glow::DEBUG_SOURCE_APPLICATION => "Application",
+            glow::DEBUG_SOURCE_OTHER => "Other",
+            _ => "Unknown",
+        };
+        let gltype = match gltype {
+            glow::DEBUG_TYPE_ERROR => "Error",
+            glow::DEBUG_TYPE_DEPRECATED_BEHAVIOR => "Deprecated Behavior",
+            glow::DEBUG_TYPE_UNDEFINED_BEHAVIOR => "Undefined Behavior",
+            glow::DEBUG_TYPE_PORTABILITY => "Portability",
+            glow::DEBUG_TYPE_PERFORMANCE => "Performance",
+            glow::DEBUG_TYPE_OTHER => "Other",
+            glow::DEBUG_TYPE_MARKER => "Marker",
+            glow::DEBUG_TYPE_PUSH_GROUP => "Push Group",
+            glow::DEBUG_TYPE_POP_GROUP => "Pop Group",
+            _ => "Unknown",
+        };
+
+        // match severity use different log level
+        match severity {
+            glow::DEBUG_SEVERITY_HIGH => log::error!(
+                "OpenGL Debug High Severity: {} {} {} {}",
+                source,
+                gltype,
+                id,
+                message
+            ),
+            glow::DEBUG_SEVERITY_MEDIUM => log::warn!(
+                "OpenGL Debug Medium Severity: {} {} {} {}",
+                source,
+                gltype,
+                id,
+                message
+            ),
+            glow::DEBUG_SEVERITY_LOW => log::debug!(
+                "OpenGL Debug Low Severity: {} {} {} {}",
+                source,
+                gltype,
+                id,
+                message
+            ),
+            glow::DEBUG_SEVERITY_NOTIFICATION => log::trace!(
+                "OpenGL Debug Notification: {} {} {} {}",
+                source,
+                gltype,
+                id,
+                message
+            ),
+            _ => log::warn!(
+                "OpenGL Debug Unknown Severity: {} {} {} {}",
+                source,
+                gltype,
+                id,
+                message
+            ),
+        }
+    });
 }
 
 #[allow(dead_code)]
