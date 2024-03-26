@@ -1,15 +1,16 @@
 use crate::camera::Camera;
+use crate::resources::load_binary;
 use crate::shader::MyShader;
 use crate::window::{run, AppContext, Application, WindowInitInfo};
-use crate::{resources, texture};
 use glow::*;
+use image::GenericImageView;
 use nalgebra_glm as glm;
 use std::mem::size_of;
 use winit_input_helper::WinitInputHelper;
 
-pub async unsafe fn main_5_1_1() {
+pub async unsafe fn main_5_2_1() {
     let init_info = WindowInitInfo::builder()
-        .title("Advanced Lighting | Press Space to enable blinn".to_string())
+        .title("Gamma Correction | Press Space to enable gamma".to_string())
         .build();
     unsafe {
         run::<App>(init_info).await;
@@ -28,42 +29,42 @@ const PLANE_VERTICES: [f32; 48] = [
     10.0, -0.5, -10.0,  0.0, 1.0, 0.0,  10.0, 10.0
 ];
 
-const LIGHT_POS: glm::Vec3 = glm::Vec3::new(0.0, 0.0, 0.0);
+const LIGHT_POSITIONS: [glm::Vec3; 4] = [
+    glm::Vec3::new(-3.0, 0.0, 0.0),
+    glm::Vec3::new(-1.0, 0.0, 0.0),
+    glm::Vec3::new(1.0, 0.0, 0.0),
+    glm::Vec3::new(3.0, 0.0, 0.0),
+];
+
+const LIGHT_COLORS: [glm::Vec3; 4] = [
+    glm::Vec3::new(0.25, 0.25, 0.25),
+    glm::Vec3::new(0.50, 0.50, 0.50),
+    glm::Vec3::new(0.75, 0.75, 0.75),
+    glm::Vec3::new(1.00, 1.00, 1.00),
+];
 
 struct App {
     plane_vao: VertexArray,
     plane_vbo: Buffer,
-    floor_texture: texture::Texture,
+    floor_texture: Texture,
+    floor_texture_gamma_corrected: Texture,
     shader: MyShader,
     camera: Camera,
 
-    use_blinn: bool,
+    gamma_enabled: bool,
 }
 
 impl Application for App {
     async unsafe fn new(ctx: &AppContext) -> Self {
         let gl = ctx.gl();
 
-        cfg_if::cfg_if! {
-            if #[cfg(target_arch = "wasm32")] {
-                // interface blocks is not supported in WebGL2, thus we use a different shader here
-                let shader = MyShader::new_from_source(
-                    gl,
-                    include_str!("./shaders/_1_1_advanced_lighting_web.vs"),
-                    include_str!("./shaders/_1_1_advanced_lighting_web.fs"),
-                    Some(ctx.suggested_shader_version()),
-                )
-                .expect("Failed to create program");
-            } else {
-                let shader = MyShader::new_from_source(
-                    gl,
-                    include_str!("./shaders/_1_1_advanced_lighting.vs"),
-                    include_str!("./shaders/_1_1_advanced_lighting.fs"),
-                    Some(ctx.suggested_shader_version()),
-                )
-                .expect("Failed to create program");
-            }
-        }
+        let shader = MyShader::new_from_source(
+            gl,
+            include_str!("./shaders/_2_1_gamma_correction.vs"),
+            include_str!("./shaders/_2_1_gamma_correction.fs"),
+            Some(ctx.suggested_shader_version()),
+        )
+        .expect("Failed to create program");
 
         let camera = Camera::new_with_position(glm::vec3(0.0, 0.0, 3.0));
 
@@ -95,17 +96,24 @@ impl Application for App {
 
         // load textures
         // -------------
-        let floor_texture = resources::load_texture(gl, "textures/wood.png")
+        let floor_texture = load_texture(gl, "textures/wood.png", false)
             .await
             .expect("Failed to load texture");
+        let floor_texture_gamma_corrected = load_texture(gl, "textures/wood.png", true)
+            .await
+            .expect("Failed to load texture");
+
+        shader.use_shader(gl);
+        shader.set_int(gl, "floorTexture", 0);
 
         Self {
             plane_vao,
             plane_vbo,
             floor_texture,
+            floor_texture_gamma_corrected,
             shader,
             camera,
-            use_blinn: false,
+            gamma_enabled: false,
         }
     }
 
@@ -127,18 +135,37 @@ impl Application for App {
         self.shader.set_mat4(gl, "projection", &projection);
         self.shader.set_mat4(gl, "view", &view);
         // set light uniforms
+        let program = self.shader.program();
+        let light_positions_loc = gl.get_uniform_location(program, "lightPositions");
+        let light_colors_loc = gl.get_uniform_location(program, "lightColors");
+        gl.uniform_3_f32_slice(
+            light_positions_loc.as_ref(),
+            bytemuck::cast_slice(&LIGHT_POSITIONS),
+        );
+        gl.uniform_3_f32_slice(
+            light_colors_loc.as_ref(),
+            bytemuck::cast_slice(&LIGHT_COLORS),
+        );
+
         self.shader.set_vec3(gl, "viewPos", &self.camera.position);
-        self.shader.set_vec3(gl, "lightPos", &LIGHT_POS);
         self.shader
-            .set_int(gl, "blinn", if self.use_blinn { 1 } else { 0 });
+            .set_int(gl, "gamma", if self.gamma_enabled { 1 } else { 0 });
 
         // floor
         gl.bind_vertex_array(Some(self.plane_vao));
-        self.floor_texture.bind(gl, 0);
+        gl.active_texture(TEXTURE0);
+        gl.bind_texture(
+            TEXTURE_2D,
+            Some(if self.gamma_enabled {
+                self.floor_texture_gamma_corrected
+            } else {
+                self.floor_texture
+            }),
+        );
         gl.draw_arrays(TRIANGLES, 0, 6);
 
         #[cfg(not(feature = "egui-support"))]
-        log::info!("Blinn: {}", self.use_blinn);
+        log::info!("Gamma Enabled: {}", self.gamma_enabled);
     }
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
@@ -150,8 +177,8 @@ impl Application for App {
     ) {
         egui::Window::new("Info").show(egui_ctx, |ui| {
             ui.label(format!("FPS: {:.1}", 1.0 / state.render_delta_time));
-            ui.label("Press Space to enable blinn");
-            ui.label(format!("Blinn: {}", self.use_blinn));
+            ui.label("Press Space to enable gamma");
+            ui.label(format!("Gamma Enabled: {}", self.gamma_enabled));
         });
     }
 
@@ -159,7 +186,7 @@ impl Application for App {
         self.camera.process_keyboard_with_input(input);
         self.camera.process_mouse_with_input(input, true);
 
-        self.use_blinn = input.key_held(winit::keyboard::KeyCode::Space);
+        self.gamma_enabled = input.key_held(winit::keyboard::KeyCode::Space);
     }
 
     unsafe fn exit(&mut self, ctx: &AppContext) {
@@ -170,4 +197,44 @@ impl Application for App {
         gl.delete_vertex_array(self.plane_vao);
         gl.delete_buffer(self.plane_vbo);
     }
+}
+
+async fn load_texture(
+    gl: &Context,
+    file_name: &str,
+    gamma_correction: bool,
+) -> anyhow::Result<Texture> {
+    log::info!("Loading texture file_name: {}", file_name);
+    let bytes = load_binary(file_name).await?;
+    let img = image::load_from_memory(&bytes).expect("Failed to load texture from bytes");
+
+    let (width, height) = img.dimensions();
+    let data = img.into_rgba8();
+    let internal_format = if gamma_correction { SRGB8_ALPHA8 } else { RGBA };
+    let data_format = RGBA;
+
+    let texture = unsafe {
+        let texture = gl.create_texture().expect("Create texture");
+        gl.bind_texture(TEXTURE_2D, Some(texture));
+        gl.tex_image_2d(
+            TEXTURE_2D,
+            0,
+            (internal_format+1) as i32,
+            width as i32,
+            height as i32,
+            0,
+            data_format,
+            UNSIGNED_BYTE,
+            Some(&data),
+        );
+        gl.generate_mipmap(TEXTURE_2D);
+
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_S, REPEAT as i32);
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_WRAP_T, REPEAT as i32);
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MIN_FILTER, LINEAR_MIPMAP_LINEAR as i32);
+        gl.tex_parameter_i32(TEXTURE_2D, TEXTURE_MAG_FILTER, LINEAR as i32);
+
+        texture
+    };
+    Ok(texture)
 }
