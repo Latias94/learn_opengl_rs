@@ -54,6 +54,8 @@ pub struct WindowInitInfo {
     pub major: u8,
     #[builder(default = 3)]
     pub minor: u8,
+    #[builder(default = 1)]
+    pub num_samples: u8,
 }
 
 pub struct AppContext {
@@ -244,7 +246,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             .with_title(title.as_str())
             .with_inner_size(winit::dpi::LogicalSize::new(width, height));
 
-        let template = ConfigTemplateBuilder::new();
+        let template = ConfigTemplateBuilder::new().with_multisampling(init_info.num_samples);
 
         let display_builder = DisplayBuilder::new().with_window_builder(Some(window_builder));
 

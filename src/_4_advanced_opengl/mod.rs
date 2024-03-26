@@ -51,3 +51,6 @@ pub use _10_2_asteroids::main_4_10_2;
 
 mod _10_3_asteroids_instanced;
 pub use _10_3_asteroids_instanced::main_4_10_3;
+
+mod _11_1_anti_aliasing_msaa;
+pub use _11_1_anti_aliasing_msaa::main_4_11_1;
