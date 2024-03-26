@@ -310,7 +310,6 @@ impl Application for App {
         gl.delete_buffer(self.vbo);
 
         gl.delete_texture(self.texture_1);
-
         gl.delete_texture(self.texture_2);
     }
 }

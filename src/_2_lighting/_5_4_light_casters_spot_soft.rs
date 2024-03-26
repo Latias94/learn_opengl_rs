@@ -85,7 +85,7 @@ struct App {
     specular_map: Texture,
     lighting_shader: MyShader,
     lighting_cube_shader: MyShader,
-    camera: crate::camera::Camera,
+    camera: Camera,
 }
 
 impl Application for App {

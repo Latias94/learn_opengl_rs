@@ -130,7 +130,6 @@ impl Application for App {
         gl_ctx: &crate::window::GLContext,
         egui_ctx: &egui::Context,
     ) {
-        // show fps by default
         egui::Window::new("Info").show(egui_ctx, |ui| {
             ui.label(format!("FPS: {:.1}", 1.0 / state.render_delta_time));
             // slider to control asteroid count

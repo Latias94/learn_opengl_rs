@@ -105,11 +105,8 @@ impl Application for App {
         _gl_ctx: &crate::window::GLContext,
         egui_ctx: &egui::Context,
     ) {
-        // show fps by default
         egui::Window::new("Info").show(egui_ctx, |ui| {
             ui.label(format!("FPS: {:.1}", 1.0 / state.render_delta_time));
-            let elapsed_time = state.elapsed_time_secs();
-            ui.label(format!("Elapsed time: {:.1}s", elapsed_time));
             // slider to control asteroid count
             let mut amount = self.model_matrices.len() as f32;
             ui.add(

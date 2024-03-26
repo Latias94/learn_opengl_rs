@@ -1,3 +1,4 @@
+use crate::camera::Camera;
 use crate::shader::MyShader;
 use crate::window::{run, AppContext, Application, WindowInitInfo};
 use glow::*;
@@ -84,7 +85,7 @@ struct App {
     texture_1: Texture,
     texture_2: Texture,
     shader: MyShader,
-    camera: crate::camera::Camera,
+    camera: Camera,
 }
 
 impl Application for App {
@@ -258,7 +259,6 @@ impl Application for App {
         gl.delete_buffer(self.vbo);
 
         gl.delete_texture(self.texture_1);
-
         gl.delete_texture(self.texture_2);
     }
 }
