@@ -40,8 +40,8 @@ raw-window-handle = "0.5"
 env_logger = "0.11"
 # block on async
 pollster = "0.3"
-egui = { version = "0.26", features = ["default_fonts"], optional = true }
-egui_glow = { version = "0.26", features = ["winit"], optional = true }
+egui = { version = "0.27", features = ["default_fonts"], optional = true }
+egui_glow = { version = "0.27", features = ["winit"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
