@@ -9,3 +9,6 @@ pub use _3_1_shadow_mapping_depth::main_5_3_1;
 
 mod _3_2_shadow_mapping_base;
 pub use _3_2_shadow_mapping_base::main_5_3_2;
+
+mod _3_3_shadow_mapping;
+pub use _3_3_shadow_mapping::main_5_3_3;
