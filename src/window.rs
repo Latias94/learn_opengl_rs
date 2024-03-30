@@ -471,6 +471,8 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                 if let Some(size) = input.window_resized() {
                     let (width, height) = (size.width, size.height);
                     log::info!("Resizing to {}x{}", width, height);
+                    ctx.app_state.width = width;
+                    ctx.app_state.height = height;
                     app.resize(ctx, width, height);
                     return;
                 }
