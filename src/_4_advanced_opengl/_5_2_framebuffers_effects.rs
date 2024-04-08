@@ -404,6 +404,34 @@ impl Application for App {
         });
     }
 
+    #[cfg(feature = "imgui-support")]
+    fn do_ui(
+        &mut self,
+        ui: &easy_imgui_window::easy_imgui::Ui<crate::window::EasyImGuiFacade<Self>>
+    ) {
+        use easy_imgui_window::easy_imgui::WindowFlags;
+
+        ui.window_config("Change states")
+            .flags(WindowFlags::NoResize)
+            .with(|| {
+                ui.text("Press Q/E to change effects");
+
+                ui.text("Current effect: ");
+                ui.same_line();
+                ui.text(&format!(
+                        "{:?}",
+                        self.post_processing_orders[self.current_post_processing_index as usize]
+                ));
+                for effect in &self.post_processing_orders {
+                    if ui.radio_button_config(effect.to_string(), self.current_post_processing_index == *effect as i32)
+                        .build()
+                    {
+                        self.current_post_processing_index = *effect as i32;
+                    }
+                }
+            });
+    }
+
     unsafe fn render(&mut self, ctx: &AppContext) {
         let gl = ctx.gl();
 
@@ -510,3 +538,4 @@ impl App {
             .unwrap()
     }
 }
+
