@@ -1,6 +1,5 @@
 use glow::{Context, HasContext};
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use typed_builder::TypedBuilder;
@@ -74,7 +73,10 @@ pub struct AppContext {
 }
 
 pub struct GLContext {
+    #[cfg(feature = "imgui-support")]
     pub gl: Rc<glow::Context>,
+    #[cfg(not(feature = "imgui-support"))]
+    pub gl: Arc<glow::Context>,
 
     #[cfg(not(target_arch = "wasm32"))]
     pub gl_surface: glutin::surface::Surface<glutin::surface::WindowSurface>,
@@ -282,6 +284,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
         let raw_window_handle = window.as_ref().map(|window| window.raw_window_handle());
 
         let gl_display = gl_config.display();
+        #[allow(unused_mut)]
         let mut context_attributes = ContextAttributesBuilder::new().with_context_api(
             ContextApi::OpenGl(Some(glutin::context::Version { major, minor })),
         );
@@ -308,6 +311,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
 
         let gl_context = not_current_gl_context.make_current(&gl_surface).unwrap();
 
+        #[allow(unused_mut)]
         let mut gl =
             unsafe { glow::Context::from_loader_function_cstr(|s| gl_display.get_proc_address(s)) };
 
@@ -337,8 +341,12 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
             let scale_factor= window.scale_factor();
         }
     }
+    #[cfg(feature = "imgui-support")]
     #[allow(clippy::arc_with_non_send_sync)]
-    let gl = Rc::new(gl);
+    let gl = std::rc::Rc::new(gl);
+
+    #[cfg(not(feature = "imgui-support"))]
+    let gl = Arc::new(gl);
 
     #[cfg(all(not(target_arch = "wasm32"), feature = "egui-support"))]
     let egui_glow = {
