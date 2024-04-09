@@ -404,8 +404,8 @@ impl Application for App {
         });
     }
 
-    #[cfg(feature = "imgui-support")]
-    fn do_ui(
+    #[cfg(all(not(target_arch = "wasm32"), feature = "imgui-support"))]
+    fn ui(
         &mut self,
         ui: &easy_imgui_window::easy_imgui::Ui<crate::window::EasyImGuiFacade<Self>>
     ) {

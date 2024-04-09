@@ -76,6 +76,8 @@ command found in `justfile` manually.
 ```shell
 just run 1_2_1 # Debug build then Run tutorial 1_2_1
 just rrun 3_1_1 # Release build then run tutorial 3_1_1
+cargo r --features egui-support -- 4_5_2 # Run tutorial 4_5_2 with egui
+cargo r --features imgui-support -- 4_5_2 # Run tutorial 4_5_2 with imgui
 ```
 
 ### WebGL

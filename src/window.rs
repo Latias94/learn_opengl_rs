@@ -32,8 +32,8 @@ pub trait Application: Sized {
             ui.label(format!("FPS: {:.1}", 1.0 / state.render_delta_time));
         });
     }
-    #[cfg(feature = "imgui-support")]
-    fn do_ui(&mut self, _ui: &easy_imgui_window::easy_imgui::Ui<EasyImGuiFacade<Self>>) {}
+    #[cfg(all(not(target_arch = "wasm32"), feature = "imgui-support"))]
+    fn ui(&mut self, _ui: &easy_imgui_window::easy_imgui::Ui<EasyImGuiFacade<Self>>) {}
     unsafe fn render(&mut self, _ctx: &AppContext) {}
     unsafe fn update(&mut self, _update_delta_time: f32) {}
     unsafe fn resize(&mut self, ctx: &AppContext, width: u32, height: u32) {
@@ -74,7 +74,7 @@ pub struct AppContext {
 
 pub struct GLContext {
     #[cfg(feature = "imgui-support")]
-    pub gl: Rc<glow::Context>,
+    pub gl: std::rc::Rc<glow::Context>,
     #[cfg(not(feature = "imgui-support"))]
     pub gl: Arc<glow::Context>,
 
@@ -491,7 +491,7 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
                     &mut ctx.imgui_status,
                     &mut EasyImGuiFacade(app),
                     event,
-                    easy_imgui_window::EventFlags::DoNotRender
+                    easy_imgui_window::EventFlags::DoNotRender,
                 );
                 if ui_wants.want_capture_keyboard || ui_wants.want_capture_mouse {
                     //TODO: separate mouse/keyboard capture
@@ -543,7 +543,7 @@ pub struct EasyImGuiFacade<'a, A>(&'a mut A);
 #[cfg(feature = "imgui-support")]
 impl<'a, A: Application> easy_imgui_window::easy_imgui::UiBuilder for EasyImGuiFacade<'a, A> {
     fn do_ui(&mut self, ui: &easy_imgui_window::easy_imgui::Ui<Self>) {
-        self.0.do_ui(ui);
+        self.0.ui(ui);
     }
 }
 
