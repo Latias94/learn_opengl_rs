@@ -366,6 +366,10 @@ pub async unsafe fn run<App: Application + 'static>(init_info: WindowInitInfo) {
     let imgui_renderer = {
         let mut r = easy_imgui_window::easy_imgui_renderer::Renderer::new(gl.clone()).unwrap();
         r.set_background_color(None);
+        let scale = window.scale_factor();
+        let size = window.inner_size().to_logical::<f32>(scale);
+        let size = easy_imgui_window::easy_imgui::Vector2::new(size.width, size.height);
+        r.set_size(size, scale as f32);
         r
     };
     let ctx = AppContext {
