@@ -24,7 +24,7 @@ nalgebra-glm = { version = "0.18", features = ["convert-bytemuck"] }
 # cross-platform window management library
 winit = { version = "0.29", features = ["rwh_05"] }
 winit_input_helper = "0.16"
-game-loop = { version = "1.1", features = ["winit"] }
+game-loop = { version = "=1.1", features = ["winit"] }
 anyhow = "1"
 # obj loader
 tobj = { version = "4", features = [
@@ -42,7 +42,7 @@ env_logger = "0.11"
 pollster = "0.3"
 egui = { version = "0.27", features = ["default_fonts"], optional = true }
 egui_glow = { version = "0.27", features = ["winit"], optional = true }
-easy-imgui-window = { version = "0.3", optional = true }
+easy-imgui-window = { version = "0.4", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
